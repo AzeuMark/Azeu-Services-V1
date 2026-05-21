@@ -1,0 +1,10 @@
+# Visual Studio cache and hidden stuff
+.vs/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates

@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "HoRSbx0F5lU=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Azeu PC1\\source\\repos\\AzeuServices V1\\Azeu-Services-V1\\AzeuServices V1.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Azeu PC1\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.25\\microsoft.windowsdesktop.app.ref.8.0.25.nupkg.sha512",
+    "C:\\Users\\Azeu PC1\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.25\\microsoft.netcore.app.ref.8.0.25.nupkg.sha512",
+    "C:\\Users\\Azeu PC1\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.25\\microsoft.aspnetcore.app.ref.8.0.25.nupkg.sha512",
+    "C:\\Users\\Azeu PC1\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\8.0.25\\microsoft.netcore.app.host.win-x64.8.0.25.nupkg.sha512"
+  ],
+  "logs": []
+}
