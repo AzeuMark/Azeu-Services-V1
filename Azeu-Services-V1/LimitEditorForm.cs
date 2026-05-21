@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Windows.Forms;
 
@@ -24,12 +25,17 @@ namespace AzeuServices_V1
 
         private void SetupEditor()
         {
+            // Populate Font List
             string[] topFonts = { "Arial", "Arial Black", "Impact", "Segoe UI", "Verdana", "Tahoma", "Times New Roman" };
             cmbFontFamily.Items.AddRange(topFonts);
             cmbRetFontFamily.Items.AddRange(topFonts);
 
-            string[] colors = { "Black", "White", "Red", "DimGray", "Blue", "Green", "Yellow", "Gray" };
-            foreach (var cb in new[] { cmbBgColor, cmbTextColor, cmbRetTextColor }) cb.Items.AddRange(colors);
+            // Populate Colors
+            string[] colors = { "Black", "White", "Red", "DimGray", "Blue", "Green", "Yellow", "Gray", "DarkRed", "Orange" };
+            foreach (var cb in new[] { cmbBgColor, cmbTextColor, cmbRetTextColor })
+            {
+                cb.Items.AddRange(colors);
+            }
 
             cmbImageSize.Items.AddRange(new string[] { "Stretch", "Zoom", "Center" });
 
@@ -37,7 +43,7 @@ namespace AzeuServices_V1
             Control[] liveInputs = {
                 txtMessage, txtFontSize, cmbFontFamily, cmbBgColor, cmbTextColor,
                 chkShowBypass, cmbImageSize,
-                chkShowReturning, cmbRetFontFamily, txtRetFontSize, cmbRetTextColor
+                chkShowReturning, cmbRetFontFamily, txtRetFontSize, cmbRetTextColor, txtRetMargin
             };
 
             foreach (var ctrl in liveInputs)
@@ -47,8 +53,8 @@ namespace AzeuServices_V1
                 if (ctrl is CheckBox chk) chk.CheckedChanged += (s, e) => UpdatePreview();
             }
 
-            btnSelectImage.Click += (s, e) =>
-            {
+            // Image Selection
+            btnSelectImage.Click += (s, e) => {
                 using (OpenFileDialog ofd = new OpenFileDialog { Filter = "Images|*.jpg;*.png;*.bmp" })
                 {
                     if (ofd.ShowDialog() == DialogResult.OK)
@@ -59,31 +65,33 @@ namespace AzeuServices_V1
                 }
             };
 
-            
+            btnFullScreen.Click += (s, e) => RunFullScreenTest();
             btnSave.Click += (s, e) => SaveAndClose();
             btnCancel.Click += (s, e) => this.Close();
         }
 
         private void LoadCurrentSettings()
         {
-            // Main Message
+            // Main Message Segment
             txtMessage.Text = _settings.LimitMessage;
             cmbFontFamily.Text = _settings.LimitFontFamily;
             txtFontSize.Text = _settings.LimitFontSize.ToString();
             cmbBgColor.Text = _settings.LimitBgColor;
             cmbTextColor.Text = _settings.LimitTextColor;
+            chkShowBypass.Checked = _settings.LimitShowBypassInstructions;
 
-            // Returning Time
+            // Returning Time Segment (Separated)
             chkShowReturning.Checked = _settings.LimitShowReturningTime;
             cmbRetFontFamily.Text = _settings.LimitReturningFontFamily;
             txtRetFontSize.Text = _settings.LimitReturningFontSize.ToString();
             cmbRetTextColor.Text = _settings.LimitReturningTextColor;
+            txtRetMargin.Text = _settings.LimitReturningBottomMargin.ToString();
 
-            // Background
+            // Background Segment
             txtImagePath.Text = _settings.LimitDesktopImagePath;
             cmbImageSize.Text = _settings.LimitDesktopImageSizeMode;
-            chkShowBypass.Checked = _settings.LimitShowBypassInstructions;
 
+            // Defaults if empty
             if (string.IsNullOrEmpty(cmbFontFamily.Text)) cmbFontFamily.Text = "Arial";
             if (string.IsNullOrEmpty(cmbRetFontFamily.Text)) cmbRetFontFamily.Text = "Arial";
             if (string.IsNullOrEmpty(cmbImageSize.Text)) cmbImageSize.Text = "Stretch";
@@ -93,10 +101,11 @@ namespace AzeuServices_V1
         {
             if (isInitializing) return;
 
+            // Calculate scaling to make the preview panel look like a real monitor
             float scaleFactor = (float)pnlPreview.Width / Screen.PrimaryScreen.Bounds.Width;
             pnlPreview.BackColor = Color.FromName(cmbBgColor.Text);
 
-            // Background Image logic
+            // 1. Background Image Preview
             if (!string.IsNullOrEmpty(txtImagePath.Text) && File.Exists(txtImagePath.Text))
             {
                 try
@@ -112,30 +121,37 @@ namespace AzeuServices_V1
             }
             else pnlPreview.BackgroundImage = null;
 
-            // 1. STYLE MAIN MESSAGE
+            // 2. Main Message Preview
             lblPreviewMsg.Text = txtMessage.Text;
             lblPreviewMsg.ForeColor = Color.FromName(cmbTextColor.Text);
             int.TryParse(txtFontSize.Text, out int fSize);
             try { lblPreviewMsg.Font = new Font(cmbFontFamily.Text, fSize * scaleFactor, FontStyle.Bold); } catch { }
 
-            // 2. STYLE RETURNING TIME (SEPARATED)
+            // 3. Returning Time Preview (With its own styles)
             lblPreviewReturning.Visible = chkShowReturning.Checked;
             if (chkShowReturning.Checked)
             {
-                // Pull schedule from local config temporarily for preview
+                // Pull actual schedule from settings for the preview text
                 var mainCfg = AppSettings.Load();
                 lblPreviewReturning.Text = $"Returning at {mainCfg.LimitDesktopHourOpen}:{mainCfg.LimitDesktopMinOpen} {mainCfg.LimitDesktopAMPMOpen}";
                 lblPreviewReturning.ForeColor = Color.FromName(cmbRetTextColor.Text);
+
                 int.TryParse(txtRetFontSize.Text, out int rSize);
                 try { lblPreviewReturning.Font = new Font(cmbRetFontFamily.Text, rSize * scaleFactor, FontStyle.Bold); } catch { }
+
+                // Apply dynamic margin to the preview (scaled)
+                int.TryParse(txtRetMargin.Text, out int margin);
+                lblPreviewReturning.Padding = new Padding(0, 0, 0, (int)(margin * scaleFactor));
             }
 
+            // 4. Bypass Instruction Preview
             lblPreviewBypass.Visible = chkShowBypass.Checked;
             lblPreviewBypass.ForeColor = Color.FromName(cmbTextColor.Text);
         }
 
         private void SaveToSettings(AppSettings s)
         {
+            // Main Message
             s.LimitMessage = txtMessage.Text;
             s.LimitFontFamily = cmbFontFamily.Text;
             int.TryParse(txtFontSize.Text, out int v1); s.LimitFontSize = v1;
@@ -143,45 +159,64 @@ namespace AzeuServices_V1
             s.LimitTextColor = cmbTextColor.Text;
             s.LimitShowBypassInstructions = chkShowBypass.Checked;
 
+            // Returning Time
             s.LimitShowReturningTime = chkShowReturning.Checked;
             s.LimitReturningFontFamily = cmbRetFontFamily.Text;
             int.TryParse(txtRetFontSize.Text, out int v2); s.LimitReturningFontSize = v2;
             s.LimitReturningTextColor = cmbRetTextColor.Text;
+            int.TryParse(txtRetMargin.Text, out int v3); s.LimitReturningBottomMargin = v3;
 
+            // Background
             s.LimitDesktopImagePath = txtImagePath.Text;
             s.LimitDesktopImageSizeMode = cmbImageSize.Text;
         }
 
         private void SaveAndClose()
         {
+            string sourcePath = txtImagePath.Text;
+            string finalImagePath = sourcePath;
+
+            // Handle Image Persistence (Copy image to local app folder)
+            if (!string.IsNullOrEmpty(sourcePath) && File.Exists(sourcePath))
+            {
+                string appDir = AppDomain.CurrentDomain.BaseDirectory;
+                string imagesFolder = Path.Combine(appDir, "images");
+                if (!Directory.Exists(imagesFolder)) Directory.CreateDirectory(imagesFolder);
+
+                string extension = Path.GetExtension(sourcePath);
+                string targetPath = Path.Combine(imagesFolder, "curfew-bg" + extension);
+
+                if (string.Compare(sourcePath, targetPath, true) != 0)
+                {
+                    try { File.Copy(sourcePath, targetPath, true); finalImagePath = targetPath; }
+                    catch (Exception ex) { MessageBox.Show("Image Save Error: " + ex.Message); }
+                }
+            }
+
             SaveToSettings(_settings);
+            _settings.LimitDesktopImagePath = finalImagePath;
             AppSettings.Save(_settings);
+
             this.DialogResult = DialogResult.OK;
             this.Close();
         }
 
         private void RunFullScreenTest()
         {
-            // Create a temporary settings object to hold current UI choices
+            // Create temporary settings from UI for the test
             AppSettings temp = new AppSettings();
             SaveToSettings(temp);
 
-            // Sync the schedule from the main saved settings so the labels are accurate
+            // Pull the actual schedule from saved settings so the test is realistic
             var saved = AppSettings.Load();
             temp.LimitDesktopHourOpen = saved.LimitDesktopHourOpen;
             temp.LimitDesktopMinOpen = saved.LimitDesktopMinOpen;
             temp.LimitDesktopAMPMOpen = saved.LimitDesktopAMPMOpen;
 
-            // Open the form in Preview Mode (which is now Full Screen)
             using (LimitClosedForm test = new LimitClosedForm(temp, null, true))
             {
                 test.ShowDialog();
             }
-        }
-
-        private void btnFullScreen_Click(object sender, EventArgs e)
-        {
-            RunFullScreenTest();    
         }
     }
 }

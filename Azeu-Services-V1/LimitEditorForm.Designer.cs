@@ -13,6 +13,8 @@
             base.Dispose(disposing);
         }
 
+        #region Windows Form Designer generated code
+
         private void InitializeComponent()
         {
             splitContainer1 = new SplitContainer();
@@ -21,6 +23,8 @@
             lblPreviewBypass = new Label();
             lblPreviewMsg = new Label();
             grpReturning = new GroupBox();
+            txtRetMargin = new TextBox();
+            label9 = new Label();
             chkShowReturning = new CheckBox();
             cmbRetFontFamily = new ComboBox();
             txtRetFontSize = new TextBox();
@@ -82,7 +86,7 @@
             splitContainer1.Panel2.Controls.Add(btnCancel);
             splitContainer1.Panel2.Controls.Add(grpImage);
             splitContainer1.Panel2.Padding = new Padding(15);
-            splitContainer1.Size = new Size(1063, 620);
+            splitContainer1.Size = new Size(1063, 630);
             splitContainer1.SplitterDistance = 723;
             splitContainer1.TabIndex = 0;
             // 
@@ -101,11 +105,11 @@
             // lblPreviewReturning
             // 
             lblPreviewReturning.BackColor = Color.Transparent;
-            lblPreviewReturning.Dock = DockStyle.Top;
+            lblPreviewReturning.Dock = DockStyle.Bottom;
             lblPreviewReturning.ForeColor = Color.White;
-            lblPreviewReturning.Location = new Point(0, 240);
+            lblPreviewReturning.Location = new Point(0, 323);
             lblPreviewReturning.Name = "lblPreviewReturning";
-            lblPreviewReturning.Size = new Size(698, 60);
+            lblPreviewReturning.Size = new Size(698, 44);
             lblPreviewReturning.TabIndex = 3;
             lblPreviewReturning.Text = "Returning at 08:00 AM";
             lblPreviewReturning.TextAlign = ContentAlignment.MiddleCenter;
@@ -114,11 +118,10 @@
             // 
             lblPreviewBypass.BackColor = Color.Transparent;
             lblPreviewBypass.Dock = DockStyle.Bottom;
-            lblPreviewBypass.Font = new Font("Segoe UI", 7F);
             lblPreviewBypass.ForeColor = Color.White;
-            lblPreviewBypass.Location = new Point(0, 360);
+            lblPreviewBypass.Location = new Point(0, 367);
             lblPreviewBypass.Name = "lblPreviewBypass";
-            lblPreviewBypass.Size = new Size(698, 38);
+            lblPreviewBypass.Size = new Size(698, 31);
             lblPreviewBypass.TabIndex = 2;
             lblPreviewBypass.Text = "Staff? Press Ctrl + X to unlock";
             lblPreviewBypass.TextAlign = ContentAlignment.MiddleCenter;
@@ -137,6 +140,8 @@
             // 
             // grpReturning
             // 
+            grpReturning.Controls.Add(txtRetMargin);
+            grpReturning.Controls.Add(label9);
             grpReturning.Controls.Add(chkShowReturning);
             grpReturning.Controls.Add(cmbRetFontFamily);
             grpReturning.Controls.Add(txtRetFontSize);
@@ -147,19 +152,36 @@
             grpReturning.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             grpReturning.Location = new Point(10, 262);
             grpReturning.Name = "grpReturning";
-            grpReturning.Size = new Size(300, 160);
+            grpReturning.Size = new Size(300, 166);
             grpReturning.TabIndex = 1;
             grpReturning.TabStop = false;
             grpReturning.Text = "2. Returning Time Styles";
+            // 
+            // txtRetMargin
+            // 
+            txtRetMargin.Font = new Font("Segoe UI", 9F);
+            txtRetMargin.Location = new Point(155, 134);
+            txtRetMargin.Name = "txtRetMargin";
+            txtRetMargin.Size = new Size(130, 23);
+            txtRetMargin.TabIndex = 9;
+            // 
+            // label9
+            // 
+            label9.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            label9.Location = new Point(155, 116);
+            label9.Name = "label9";
+            label9.Size = new Size(130, 15);
+            label9.TabIndex = 8;
+            label9.Text = "Bottom Margin:";
             // 
             // chkShowReturning
             // 
             chkShowReturning.AutoSize = true;
             chkShowReturning.Location = new Point(10, 125);
             chkShowReturning.Name = "chkShowReturning";
-            chkShowReturning.Size = new Size(174, 19);
+            chkShowReturning.Size = new Size(147, 19);
             chkShowReturning.TabIndex = 7;
-            chkShowReturning.Text = "Show Returning Time Hint";
+            chkShowReturning.Text = "Show Returning Time";
             chkShowReturning.UseVisualStyleBackColor = true;
             // 
             // cmbRetFontFamily
@@ -337,19 +359,18 @@
             // 
             // btnFullScreen
             // 
-            btnFullScreen.Location = new Point(10, 544);
+            btnFullScreen.Location = new Point(10, 550);
             btnFullScreen.Name = "btnFullScreen";
             btnFullScreen.Size = new Size(300, 30);
             btnFullScreen.TabIndex = 4;
             btnFullScreen.Text = "Full Screen Test";
-            btnFullScreen.Click += btnFullScreen_Click;
             // 
             // btnSave
             // 
             btnSave.BackColor = Color.Green;
             btnSave.FlatStyle = FlatStyle.Flat;
             btnSave.ForeColor = Color.White;
-            btnSave.Location = new Point(10, 580);
+            btnSave.Location = new Point(10, 586);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(145, 30);
             btnSave.TabIndex = 5;
@@ -361,7 +382,7 @@
             btnCancel.BackColor = Color.Gray;
             btnCancel.FlatStyle = FlatStyle.Flat;
             btnCancel.ForeColor = Color.White;
-            btnCancel.Location = new Point(165, 580);
+            btnCancel.Location = new Point(165, 586);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(145, 30);
             btnCancel.TabIndex = 6;
@@ -375,7 +396,7 @@
             grpImage.Controls.Add(label15);
             grpImage.Controls.Add(btnSelectImage);
             grpImage.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            grpImage.Location = new Point(10, 428);
+            grpImage.Location = new Point(10, 434);
             grpImage.Name = "grpImage";
             grpImage.Size = new Size(300, 110);
             grpImage.TabIndex = 2;
@@ -423,7 +444,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1063, 620);
+            ClientSize = new Size(1063, 630);
             Controls.Add(splitContainer1);
             MinimumSize = new Size(1000, 400);
             Name = "LimitEditorForm";
@@ -443,6 +464,8 @@
             ResumeLayout(false);
         }
 
+        #endregion
+
         private SplitContainer splitContainer1;
         private Panel pnlPreview;
         private Label lblPreviewMsg;
@@ -456,6 +479,8 @@
         private ComboBox cmbBgColor;
         private ComboBox cmbTextColor;
         private GroupBox grpReturning;
+        private TextBox txtRetMargin;
+        private Label label9;
         private CheckBox chkShowReturning;
         private ComboBox cmbRetFontFamily;
         private TextBox txtRetFontSize;

@@ -112,20 +112,18 @@ namespace AzeuServices_V1
 
         private void SetupUI()
         {
-            // Use TableLayoutPanel to manage segments
             TableLayoutPanel panel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 3, // 0: Msg, 1: ReturningTime, 2: BypassHint
+                RowCount = 3,
                 BackColor = Color.Transparent
             };
 
-            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50f)); // Msg occupies top half
-            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50f)); // ReturningTime occupies bottom half
-            panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));    // Hint at the very bottom
+            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
+            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
+            panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            // 1. ADD MAIN MESSAGE
             Label lblMsg = new Label
             {
                 Text = _settings.LimitMessage,
@@ -137,7 +135,6 @@ namespace AzeuServices_V1
             };
             panel.Controls.Add(lblMsg, 0, 0);
 
-            // 2. ADD RETURNING TIME (SEPARATE ATTRIBUTES)
             if (_settings.LimitShowReturningTime)
             {
                 string openTime = $"{_settings.LimitDesktopHourOpen}:{_settings.LimitDesktopMinOpen} {_settings.LimitDesktopAMPMOpen}";
@@ -147,13 +144,14 @@ namespace AzeuServices_V1
                     ForeColor = Color.FromName(_settings.LimitReturningTextColor),
                     Font = new Font(_settings.LimitReturningFontFamily, _settings.LimitReturningFontSize, FontStyle.Bold),
                     Dock = DockStyle.Fill,
-                    TextAlign = ContentAlignment.TopCenter, // Placed below the message
-                    BackColor = Color.Transparent
+                    TextAlign = ContentAlignment.TopCenter,
+                    BackColor = Color.Transparent,
+                    // APPLY THE CUSTOM MARGIN HERE
+                    Margin = new Padding(0, 0, 0, _settings.LimitReturningBottomMargin)
                 };
                 panel.Controls.Add(lblRet, 0, 1);
             }
 
-            // 3. ADD BYPASS HINT
             if (_settings.LimitShowBypassInstructions)
             {
                 Label lblHint = new Label
