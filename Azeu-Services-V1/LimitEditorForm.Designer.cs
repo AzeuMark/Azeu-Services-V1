@@ -1,6 +1,6 @@
 ﻿namespace AzeuServices_V1
 {
-    partial class NoSmokingEditorForm
+    partial class LimitEditorForm
     {
         private System.ComponentModel.IContainer components = null;
 
@@ -13,15 +13,23 @@
             base.Dispose(disposing);
         }
 
-        #region Windows Form Designer generated code
-
         private void InitializeComponent()
         {
             splitContainer1 = new SplitContainer();
             pnlPreview = new Panel();
-            btnPreviewAction = new Button();
+            lblPreviewReturning = new Label();
+            lblPreviewBypass = new Label();
             lblPreviewMsg = new Label();
+            grpReturning = new GroupBox();
+            chkShowReturning = new CheckBox();
+            cmbRetFontFamily = new ComboBox();
+            txtRetFontSize = new TextBox();
+            cmbRetTextColor = new ComboBox();
+            label2 = new Label();
+            label7 = new Label();
+            label8 = new Label();
             grpMessage = new GroupBox();
+            chkShowBypass = new CheckBox();
             txtMessage = new TextBox();
             cmbFontFamily = new ComboBox();
             txtFontSize = new TextBox();
@@ -34,27 +42,7 @@
             label6 = new Label();
             btnFullScreen = new Button();
             btnSave = new Button();
-            grpBehavior = new GroupBox();
-            txtDuration = new TextBox();
-            label10 = new Label();
             btnCancel = new Button();
-            grpButton = new GroupBox();
-            txtButtonText = new TextBox();
-            txtBtnWidth = new TextBox();
-            txtBtnHeight = new TextBox();
-            txtBtnFontSize = new TextBox();
-            cmbBtnBgColor = new ComboBox();
-            cmbBtnTextColor = new ComboBox();
-            txtBtnRadius = new TextBox();
-            txtBtnMargin = new TextBox();
-            label2 = new Label();
-            label11 = new Label();
-            label12 = new Label();
-            label13 = new Label();
-            label7 = new Label();
-            label8 = new Label();
-            label9 = new Label();
-            label14 = new Label();
             grpImage = new GroupBox();
             cmbImageSize = new ComboBox();
             txtImagePath = new TextBox();
@@ -65,9 +53,8 @@
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
             pnlPreview.SuspendLayout();
+            grpReturning.SuspendLayout();
             grpMessage.SuspendLayout();
-            grpBehavior.SuspendLayout();
-            grpButton.SuspendLayout();
             grpImage.SuspendLayout();
             SuspendLayout();
             // 
@@ -88,15 +75,14 @@
             // 
             splitContainer1.Panel2.AutoScroll = true;
             splitContainer1.Panel2.BackColor = Color.White;
+            splitContainer1.Panel2.Controls.Add(grpReturning);
             splitContainer1.Panel2.Controls.Add(grpMessage);
             splitContainer1.Panel2.Controls.Add(btnFullScreen);
             splitContainer1.Panel2.Controls.Add(btnSave);
-            splitContainer1.Panel2.Controls.Add(grpBehavior);
             splitContainer1.Panel2.Controls.Add(btnCancel);
-            splitContainer1.Panel2.Controls.Add(grpButton);
             splitContainer1.Panel2.Controls.Add(grpImage);
             splitContainer1.Panel2.Padding = new Padding(15);
-            splitContainer1.Size = new Size(1063, 421);
+            splitContainer1.Size = new Size(1063, 620);
             splitContainer1.SplitterDistance = 723;
             splitContainer1.TabIndex = 0;
             // 
@@ -104,21 +90,38 @@
             // 
             pnlPreview.BackColor = Color.Black;
             pnlPreview.BorderStyle = BorderStyle.FixedSingle;
-            pnlPreview.Controls.Add(btnPreviewAction);
+            pnlPreview.Controls.Add(lblPreviewReturning);
+            pnlPreview.Controls.Add(lblPreviewBypass);
             pnlPreview.Controls.Add(lblPreviewMsg);
             pnlPreview.Location = new Point(12, 10);
             pnlPreview.Name = "pnlPreview";
             pnlPreview.Size = new Size(700, 400);
             pnlPreview.TabIndex = 0;
             // 
-            // btnPreviewAction
+            // lblPreviewReturning
             // 
-            btnPreviewAction.FlatStyle = FlatStyle.Flat;
-            btnPreviewAction.Location = new Point(225, 300);
-            btnPreviewAction.Name = "btnPreviewAction";
-            btnPreviewAction.Size = new Size(250, 60);
-            btnPreviewAction.TabIndex = 0;
-            btnPreviewAction.Text = "I Understand";
+            lblPreviewReturning.BackColor = Color.Transparent;
+            lblPreviewReturning.Dock = DockStyle.Top;
+            lblPreviewReturning.ForeColor = Color.White;
+            lblPreviewReturning.Location = new Point(0, 240);
+            lblPreviewReturning.Name = "lblPreviewReturning";
+            lblPreviewReturning.Size = new Size(698, 60);
+            lblPreviewReturning.TabIndex = 3;
+            lblPreviewReturning.Text = "Returning at 08:00 AM";
+            lblPreviewReturning.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // lblPreviewBypass
+            // 
+            lblPreviewBypass.BackColor = Color.Transparent;
+            lblPreviewBypass.Dock = DockStyle.Bottom;
+            lblPreviewBypass.Font = new Font("Segoe UI", 7F);
+            lblPreviewBypass.ForeColor = Color.White;
+            lblPreviewBypass.Location = new Point(0, 360);
+            lblPreviewBypass.Name = "lblPreviewBypass";
+            lblPreviewBypass.Size = new Size(698, 38);
+            lblPreviewBypass.TabIndex = 2;
+            lblPreviewBypass.Text = "Staff? Press Ctrl + X to unlock";
+            lblPreviewBypass.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // lblPreviewMsg
             // 
@@ -127,12 +130,94 @@
             lblPreviewMsg.ForeColor = Color.White;
             lblPreviewMsg.Location = new Point(0, 0);
             lblPreviewMsg.Name = "lblPreviewMsg";
-            lblPreviewMsg.Size = new Size(698, 280);
+            lblPreviewMsg.Size = new Size(698, 240);
             lblPreviewMsg.TabIndex = 1;
+            lblPreviewMsg.Text = "PISONET IS NOW CLOSED";
             lblPreviewMsg.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // grpReturning
+            // 
+            grpReturning.Controls.Add(chkShowReturning);
+            grpReturning.Controls.Add(cmbRetFontFamily);
+            grpReturning.Controls.Add(txtRetFontSize);
+            grpReturning.Controls.Add(cmbRetTextColor);
+            grpReturning.Controls.Add(label2);
+            grpReturning.Controls.Add(label7);
+            grpReturning.Controls.Add(label8);
+            grpReturning.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            grpReturning.Location = new Point(10, 262);
+            grpReturning.Name = "grpReturning";
+            grpReturning.Size = new Size(300, 160);
+            grpReturning.TabIndex = 1;
+            grpReturning.TabStop = false;
+            grpReturning.Text = "2. Returning Time Styles";
+            // 
+            // chkShowReturning
+            // 
+            chkShowReturning.AutoSize = true;
+            chkShowReturning.Location = new Point(10, 125);
+            chkShowReturning.Name = "chkShowReturning";
+            chkShowReturning.Size = new Size(174, 19);
+            chkShowReturning.TabIndex = 7;
+            chkShowReturning.Text = "Show Returning Time Hint";
+            chkShowReturning.UseVisualStyleBackColor = true;
+            // 
+            // cmbRetFontFamily
+            // 
+            cmbRetFontFamily.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbRetFontFamily.Font = new Font("Segoe UI", 9F);
+            cmbRetFontFamily.Location = new Point(10, 40);
+            cmbRetFontFamily.Name = "cmbRetFontFamily";
+            cmbRetFontFamily.Size = new Size(130, 23);
+            cmbRetFontFamily.TabIndex = 1;
+            // 
+            // txtRetFontSize
+            // 
+            txtRetFontSize.Font = new Font("Segoe UI", 9F);
+            txtRetFontSize.Location = new Point(155, 40);
+            txtRetFontSize.Name = "txtRetFontSize";
+            txtRetFontSize.Size = new Size(130, 23);
+            txtRetFontSize.TabIndex = 3;
+            // 
+            // cmbRetTextColor
+            // 
+            cmbRetTextColor.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbRetTextColor.Font = new Font("Segoe UI", 9F);
+            cmbRetTextColor.Location = new Point(10, 90);
+            cmbRetTextColor.Name = "cmbRetTextColor";
+            cmbRetTextColor.Size = new Size(275, 23);
+            cmbRetTextColor.TabIndex = 5;
+            // 
+            // label2
+            // 
+            label2.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            label2.Location = new Point(10, 22);
+            label2.Name = "label2";
+            label2.Size = new Size(130, 15);
+            label2.TabIndex = 0;
+            label2.Text = "Font Family:";
+            // 
+            // label7
+            // 
+            label7.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            label7.Location = new Point(155, 22);
+            label7.Name = "label7";
+            label7.Size = new Size(80, 15);
+            label7.TabIndex = 2;
+            label7.Text = "Font Size:";
+            // 
+            // label8
+            // 
+            label8.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            label8.Location = new Point(10, 72);
+            label8.Name = "label8";
+            label8.Size = new Size(130, 15);
+            label8.TabIndex = 4;
+            label8.Text = "Text Color:";
             // 
             // grpMessage
             // 
+            grpMessage.Controls.Add(chkShowBypass);
             grpMessage.Controls.Add(txtMessage);
             grpMessage.Controls.Add(cmbFontFamily);
             grpMessage.Controls.Add(txtFontSize);
@@ -146,10 +231,20 @@
             grpMessage.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             grpMessage.Location = new Point(10, 10);
             grpMessage.Name = "grpMessage";
-            grpMessage.Size = new Size(300, 210);
+            grpMessage.Size = new Size(300, 246);
             grpMessage.TabIndex = 0;
             grpMessage.TabStop = false;
-            grpMessage.Text = "1. Main Message Styles";
+            grpMessage.Text = "1. Main Lock Message Styles";
+            // 
+            // chkShowBypass
+            // 
+            chkShowBypass.AutoSize = true;
+            chkShowBypass.Location = new Point(10, 212);
+            chkShowBypass.Name = "chkShowBypass";
+            chkShowBypass.Size = new Size(201, 19);
+            chkShowBypass.TabIndex = 10;
+            chkShowBypass.Text = "Show Bypass Instructions (Hint)";
+            chkShowBypass.UseVisualStyleBackColor = true;
             // 
             // txtMessage
             // 
@@ -202,7 +297,7 @@
             label1.Name = "label1";
             label1.Size = new Size(280, 15);
             label1.TabIndex = 0;
-            label1.Text = "Dialog Message:";
+            label1.Text = "Lock Message:";
             // 
             // label3
             // 
@@ -242,7 +337,7 @@
             // 
             // btnFullScreen
             // 
-            btnFullScreen.Location = new Point(10, 694);
+            btnFullScreen.Location = new Point(10, 544);
             btnFullScreen.Name = "btnFullScreen";
             btnFullScreen.Size = new Size(300, 30);
             btnFullScreen.TabIndex = 4;
@@ -254,217 +349,24 @@
             btnSave.BackColor = Color.Green;
             btnSave.FlatStyle = FlatStyle.Flat;
             btnSave.ForeColor = Color.White;
-            btnSave.Location = new Point(10, 734);
+            btnSave.Location = new Point(10, 580);
             btnSave.Name = "btnSave";
-            btnSave.Size = new Size(145, 40);
+            btnSave.Size = new Size(145, 30);
             btnSave.TabIndex = 5;
             btnSave.Text = "Save Changes";
             btnSave.UseVisualStyleBackColor = false;
-            // 
-            // grpBehavior
-            // 
-            grpBehavior.Controls.Add(txtDuration);
-            grpBehavior.Controls.Add(label10);
-            grpBehavior.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            grpBehavior.Location = new Point(10, 608);
-            grpBehavior.Name = "grpBehavior";
-            grpBehavior.Size = new Size(300, 80);
-            grpBehavior.TabIndex = 3;
-            grpBehavior.TabStop = false;
-            grpBehavior.Text = "4. Behavioral Settings";
-            // 
-            // txtDuration
-            // 
-            txtDuration.Font = new Font("Segoe UI", 9F);
-            txtDuration.Location = new Point(10, 43);
-            txtDuration.Name = "txtDuration";
-            txtDuration.Size = new Size(280, 23);
-            txtDuration.TabIndex = 1;
-            // 
-            // label10
-            // 
-            label10.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label10.Location = new Point(10, 25);
-            label10.Name = "label10";
-            label10.Size = new Size(280, 15);
-            label10.TabIndex = 0;
-            label10.Text = "Lock Duration (Seconds):";
             // 
             // btnCancel
             // 
             btnCancel.BackColor = Color.Gray;
             btnCancel.FlatStyle = FlatStyle.Flat;
             btnCancel.ForeColor = Color.White;
-            btnCancel.Location = new Point(165, 734);
+            btnCancel.Location = new Point(165, 580);
             btnCancel.Name = "btnCancel";
-            btnCancel.Size = new Size(145, 40);
+            btnCancel.Size = new Size(145, 30);
             btnCancel.TabIndex = 6;
             btnCancel.Text = "Cancel";
             btnCancel.UseVisualStyleBackColor = false;
-            // 
-            // grpButton
-            // 
-            grpButton.Controls.Add(txtButtonText);
-            grpButton.Controls.Add(txtBtnWidth);
-            grpButton.Controls.Add(txtBtnHeight);
-            grpButton.Controls.Add(txtBtnFontSize);
-            grpButton.Controls.Add(cmbBtnBgColor);
-            grpButton.Controls.Add(cmbBtnTextColor);
-            grpButton.Controls.Add(txtBtnRadius);
-            grpButton.Controls.Add(txtBtnMargin);
-            grpButton.Controls.Add(label2);
-            grpButton.Controls.Add(label11);
-            grpButton.Controls.Add(label12);
-            grpButton.Controls.Add(label13);
-            grpButton.Controls.Add(label7);
-            grpButton.Controls.Add(label8);
-            grpButton.Controls.Add(label9);
-            grpButton.Controls.Add(label14);
-            grpButton.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            grpButton.Location = new Point(10, 226);
-            grpButton.Name = "grpButton";
-            grpButton.Size = new Size(300, 260);
-            grpButton.TabIndex = 1;
-            grpButton.TabStop = false;
-            grpButton.Text = "2. Button Appearance";
-            // 
-            // txtButtonText
-            // 
-            txtButtonText.Font = new Font("Segoe UI", 9F);
-            txtButtonText.Location = new Point(10, 43);
-            txtButtonText.Name = "txtButtonText";
-            txtButtonText.Size = new Size(280, 23);
-            txtButtonText.TabIndex = 1;
-            // 
-            // txtBtnWidth
-            // 
-            txtBtnWidth.Font = new Font("Segoe UI", 9F);
-            txtBtnWidth.Location = new Point(10, 98);
-            txtBtnWidth.Name = "txtBtnWidth";
-            txtBtnWidth.Size = new Size(80, 23);
-            txtBtnWidth.TabIndex = 3;
-            // 
-            // txtBtnHeight
-            // 
-            txtBtnHeight.Font = new Font("Segoe UI", 9F);
-            txtBtnHeight.Location = new Point(105, 98);
-            txtBtnHeight.Name = "txtBtnHeight";
-            txtBtnHeight.Size = new Size(80, 23);
-            txtBtnHeight.TabIndex = 5;
-            // 
-            // txtBtnFontSize
-            // 
-            txtBtnFontSize.Font = new Font("Segoe UI", 9F);
-            txtBtnFontSize.Location = new Point(200, 98);
-            txtBtnFontSize.Name = "txtBtnFontSize";
-            txtBtnFontSize.Size = new Size(80, 23);
-            txtBtnFontSize.TabIndex = 7;
-            // 
-            // cmbBtnBgColor
-            // 
-            cmbBtnBgColor.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbBtnBgColor.Font = new Font("Segoe UI", 9F);
-            cmbBtnBgColor.Location = new Point(10, 153);
-            cmbBtnBgColor.Name = "cmbBtnBgColor";
-            cmbBtnBgColor.Size = new Size(130, 23);
-            cmbBtnBgColor.TabIndex = 9;
-            // 
-            // cmbBtnTextColor
-            // 
-            cmbBtnTextColor.DropDownStyle = ComboBoxStyle.DropDownList;
-            cmbBtnTextColor.Font = new Font("Segoe UI", 9F);
-            cmbBtnTextColor.Location = new Point(155, 153);
-            cmbBtnTextColor.Name = "cmbBtnTextColor";
-            cmbBtnTextColor.Size = new Size(130, 23);
-            cmbBtnTextColor.TabIndex = 11;
-            // 
-            // txtBtnRadius
-            // 
-            txtBtnRadius.Font = new Font("Segoe UI", 9F);
-            txtBtnRadius.Location = new Point(10, 213);
-            txtBtnRadius.Name = "txtBtnRadius";
-            txtBtnRadius.Size = new Size(130, 23);
-            txtBtnRadius.TabIndex = 13;
-            // 
-            // txtBtnMargin
-            // 
-            txtBtnMargin.Font = new Font("Segoe UI", 9F);
-            txtBtnMargin.Location = new Point(155, 213);
-            txtBtnMargin.Name = "txtBtnMargin";
-            txtBtnMargin.Size = new Size(130, 23);
-            txtBtnMargin.TabIndex = 15;
-            // 
-            // label2
-            // 
-            label2.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label2.Location = new Point(10, 25);
-            label2.Name = "label2";
-            label2.Size = new Size(280, 15);
-            label2.TabIndex = 0;
-            label2.Text = "Button Text:";
-            // 
-            // label11
-            // 
-            label11.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label11.Location = new Point(10, 80);
-            label11.Name = "label11";
-            label11.Size = new Size(80, 15);
-            label11.TabIndex = 2;
-            label11.Text = "Width:";
-            // 
-            // label12
-            // 
-            label12.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label12.Location = new Point(105, 80);
-            label12.Name = "label12";
-            label12.Size = new Size(80, 15);
-            label12.TabIndex = 4;
-            label12.Text = "Height:";
-            // 
-            // label13
-            // 
-            label13.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label13.Location = new Point(200, 80);
-            label13.Name = "label13";
-            label13.Size = new Size(80, 15);
-            label13.TabIndex = 6;
-            label13.Text = "Font Size:";
-            // 
-            // label7
-            // 
-            label7.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label7.Location = new Point(10, 135);
-            label7.Name = "label7";
-            label7.Size = new Size(130, 15);
-            label7.TabIndex = 8;
-            label7.Text = "Button BG:";
-            // 
-            // label8
-            // 
-            label8.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label8.Location = new Point(155, 135);
-            label8.Name = "label8";
-            label8.Size = new Size(130, 15);
-            label8.TabIndex = 10;
-            label8.Text = "Button Text:";
-            // 
-            // label9
-            // 
-            label9.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label9.Location = new Point(10, 195);
-            label9.Name = "label9";
-            label9.Size = new Size(130, 15);
-            label9.TabIndex = 12;
-            label9.Text = "Radius:";
-            // 
-            // label14
-            // 
-            label14.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label14.Location = new Point(155, 195);
-            label14.Name = "label14";
-            label14.Size = new Size(130, 15);
-            label14.TabIndex = 14;
-            label14.Text = "Bottom Margin:";
             // 
             // grpImage
             // 
@@ -473,12 +375,12 @@
             grpImage.Controls.Add(label15);
             grpImage.Controls.Add(btnSelectImage);
             grpImage.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            grpImage.Location = new Point(10, 492);
+            grpImage.Location = new Point(10, 428);
             grpImage.Name = "grpImage";
             grpImage.Size = new Size(300, 110);
             grpImage.TabIndex = 2;
             grpImage.TabStop = false;
-            grpImage.Text = "3. Background Image Styles";
+            grpImage.Text = "3. Background Image";
             // 
             // cmbImageSize
             // 
@@ -517,59 +419,51 @@
             btnSelectImage.TabIndex = 2;
             btnSelectImage.Text = "...";
             // 
-            // NoSmokingEditorForm
+            // LimitEditorForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1063, 421);
+            ClientSize = new Size(1063, 620);
             Controls.Add(splitContainer1);
             MinimumSize = new Size(1000, 400);
-            Name = "NoSmokingEditorForm";
+            Name = "LimitEditorForm";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "No Smoking Dialog Editor";
+            Text = "Desktop Curfew Dialog Editor";
             splitContainer1.Panel1.ResumeLayout(false);
             splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
             pnlPreview.ResumeLayout(false);
+            grpReturning.ResumeLayout(false);
+            grpReturning.PerformLayout();
             grpMessage.ResumeLayout(false);
             grpMessage.PerformLayout();
-            grpBehavior.ResumeLayout(false);
-            grpBehavior.PerformLayout();
-            grpButton.ResumeLayout(false);
-            grpButton.PerformLayout();
             grpImage.ResumeLayout(false);
             grpImage.PerformLayout();
             ResumeLayout(false);
         }
 
-        #endregion
-
         private SplitContainer splitContainer1;
         private Panel pnlPreview;
         private Label lblPreviewMsg;
-        private Button btnPreviewAction;
+        private Label lblPreviewReturning;
+        private Label lblPreviewBypass;
         private GroupBox grpMessage;
-        private GroupBox grpButton;
-        private GroupBox grpImage;
-        private GroupBox grpBehavior;
+        private CheckBox chkShowBypass;
         private TextBox txtMessage;
         private ComboBox cmbFontFamily;
         private TextBox txtFontSize;
         private ComboBox cmbBgColor;
         private ComboBox cmbTextColor;
-        private TextBox txtButtonText;
-        private TextBox txtBtnWidth;
-        private TextBox txtBtnHeight;
-        private TextBox txtBtnFontSize;
-        private ComboBox cmbBtnBgColor;
-        private ComboBox cmbBtnTextColor;
-        private TextBox txtBtnRadius;
-        private TextBox txtBtnMargin;
+        private GroupBox grpReturning;
+        private CheckBox chkShowReturning;
+        private ComboBox cmbRetFontFamily;
+        private TextBox txtRetFontSize;
+        private ComboBox cmbRetTextColor;
+        private GroupBox grpImage;
+        private ComboBox cmbImageSize;
         private TextBox txtImagePath;
         private Button btnSelectImage;
-        private ComboBox cmbImageSize;
-        private TextBox txtDuration;
         private Button btnFullScreen;
         private Button btnSave;
         private Button btnCancel;
@@ -581,12 +475,6 @@
         private Label label6;
         private Label label7;
         private Label label8;
-        private Label label9;
-        private Label label10;
-        private Label label11;
-        private Label label12;
-        private Label label13;
-        private Label label14;
         private Label label15;
     }
 }

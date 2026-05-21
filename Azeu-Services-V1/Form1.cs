@@ -34,15 +34,28 @@ namespace AzeuServices_V1
         private bool hasShown10mWarning = false;
         private bool hasShown5mWarning = false;
 
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern uint RegisterWindowMessage(string lpString);
+        private uint _openRequestMsg;
+
+        private LimitClosedForm? activeLockScreen = null;
+
+
+
         public Form1()
         {
             this.Opacity = 0;
             this.ShowInTaskbar = false;
             InitializeComponent();
 
-            var forceHandle = this.Handle;
-            SystemEvents.SessionEnding += OnSystemSessionEnding;
+            // Register the custom message handler
+            _openRequestMsg = RegisterWindowMessage(Program.MessageName);
 
+            // CRITICAL: This forces Windows to assign a handle to the form immediately 
+            // so FindWindow can find it even while hidden.
+            var forceHandle = this.Handle;
+
+            SystemEvents.SessionEnding += OnSystemSessionEnding;
             monitor = new ActivityMonitor();
             SetupTrayIcon();
 
@@ -52,6 +65,8 @@ namespace AzeuServices_V1
             LoadConfig();
             uiTimer.Start();
         }
+
+
 
         private void OnSystemSessionEnding(object sender, SessionEndingEventArgs e)
         {
@@ -79,46 +94,92 @@ namespace AzeuServices_V1
         private void CheckDesktopLimit()
         {
             if (!lastSavedSettings.LimitDesktopUsage) return;
-            if (lastSavedSettings.LastBypassDate.HasValue && lastSavedSettings.LastBypassDate.Value.Date == DateTime.Today) return;
 
-            string timeStr = lastSavedSettings.LimitDesktopHour;
-            string minStr = lastSavedSettings.LimitDesktopMin;
-            string ampm = lastSavedSettings.LimitDesktopAMPM;
-
-            if (!DateTime.TryParse($"{timeStr}:{minStr} {ampm}", out DateTime targetTime)) return;
-
-            TimeSpan timeRemaining = targetTime - DateTime.Now;
-            double totalMinutesRemaining = timeRemaining.TotalMinutes;
-
-            if (lastSavedSettings.LimitShow30min && totalMinutesRemaining <= 30 && totalMinutesRemaining > 29 && !hasShown30mWarning)
+            // 1. If Admin bypassed the lock today, don't show it again
+            if (lastSavedSettings.LastBypassDate.HasValue && lastSavedSettings.LastBypassDate.Value.Date == DateTime.Today)
             {
-                hasShown30mWarning = true;
-                ShowLimitWarning($"PC will close at {timeStr}:{minStr} {ampm}");
-            }
-            else if (lastSavedSettings.LimitShow10min && totalMinutesRemaining <= 10 && totalMinutesRemaining > 9 && !hasShown10mWarning)
-            {
-                hasShown10mWarning = true;
-                ShowLimitWarning($"PC will close at {timeStr}:{minStr} {ampm}");
-            }
-            else if (lastSavedSettings.LimitShow5min && totalMinutesRemaining <= 5 && totalMinutesRemaining > 0 && !hasShown5mWarning)
-            {
-                hasShown5mWarning = true;
-                ShowLimitWarning($"PC will close at {timeStr}:{minStr} {ampm}");
+                // If the lock screen is somehow still open, close it
+                if (activeLockScreen != null) { activeLockScreen.Close(); activeLockScreen = null; }
+                return;
             }
 
-            if (DateTime.Now >= targetTime && !limitDialogShownToday)
+            // 2. Parse Closing Time (Start of Curfew)
+            if (!DateTime.TryParse($"{lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM}", out DateTime curfewStart)) return;
+
+            // 3. Parse Opening Time (End of Curfew)
+            if (!DateTime.TryParse($"{lastSavedSettings.LimitDesktopHourOpen}:{lastSavedSettings.LimitDesktopMinOpen} {lastSavedSettings.LimitDesktopAMPMOpen}", out DateTime curfewEnd)) return;
+
+            DateTime now = DateTime.Now;
+            bool isInsideCurfew = false;
+
+            // 4. Midnight Crossing Logic (Critical Thinking)
+            // Example: 10 PM to 8 AM
+            if (curfewStart > curfewEnd)
             {
-                limitDialogShownToday = true;
-                if (lastSavedSettings.LimitDesktopAction == "Shutdown") PerformShutdown("Curfew Reached");
-                else
+                // If current time is after 10PM OR before 8AM
+                isInsideCurfew = (now >= curfewStart || now < curfewEnd);
+            }
+            else
+            {
+                // Example: 1 PM to 5 PM
+                isInsideCurfew = (now >= curfewStart && now < curfewEnd);
+            }
+
+            // 5. Handle the Lock Screen state
+            if (isInsideCurfew)
+            {
+                // It is currently CURFEW TIME
+                if (activeLockScreen == null || activeLockScreen.IsDisposed)
                 {
-                    using (LimitClosedForm closedForm = new LimitClosedForm(lastSavedSettings, () => PerformShutdown("Desktop Limit Auto-Close")))
+                    if (lastSavedSettings.LimitDesktopAction == "Shutdown")
                     {
-                        if (closedForm.ShowDialog() == DialogResult.OK)
-                        {
-                            limitDialogShownToday = false;
-                            ResetWarningFlags();
-                        }
+                        PerformShutdown("Curfew Reached");
+                    }
+                    else
+                    {
+                        // Show the lock screen
+                        activeLockScreen = new LimitClosedForm(lastSavedSettings, () => PerformShutdown("Desktop Limit Auto-Close"));
+                        activeLockScreen.FormClosed += (s, e) => { if (activeLockScreen?.DialogResult == DialogResult.OK) activeLockScreen = null; };
+                        activeLockScreen.Show();
+                    }
+                }
+            }
+            else
+            {
+                // It is currently OPEN TIME
+                // If the lock screen is visible, close it automatically
+                if (activeLockScreen != null && !activeLockScreen.IsDisposed)
+                {
+                    activeLockScreen.Close();
+                    activeLockScreen = null;
+                    ResetWarningFlags();
+                }
+            }
+
+            // 6. Warning Logic (Only show if we are approaching the curfewStart)
+            if (!isInsideCurfew)
+            {
+                TimeSpan timeUntilCurfew = curfewStart - now;
+                // If Curfew is at 10PM and it's currently 9:30PM, totalMinutes is 30
+                double totalMinutesRemaining = timeUntilCurfew.TotalMinutes;
+
+                // Ensure we only warn if curfew is in the future today
+                if (totalMinutesRemaining > 0)
+                {
+                    if (lastSavedSettings.LimitShow30min && totalMinutesRemaining <= 30 && totalMinutesRemaining > 29 && !hasShown30mWarning)
+                    {
+                        hasShown30mWarning = true;
+                        ShowLimitWarning($"PC will close at {lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM}");
+                    }
+                    else if (lastSavedSettings.LimitShow10min && totalMinutesRemaining <= 10 && totalMinutesRemaining > 9 && !hasShown10mWarning)
+                    {
+                        hasShown10mWarning = true;
+                        ShowLimitWarning($"PC will close at {lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM}");
+                    }
+                    else if (lastSavedSettings.LimitShow5min && totalMinutesRemaining <= 5 && totalMinutesRemaining > 0 && !hasShown5mWarning)
+                    {
+                        hasShown5mWarning = true;
+                        ShowLimitWarning($"PC will close at {lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM}");
                     }
                 }
             }
@@ -223,6 +284,7 @@ namespace AzeuServices_V1
             else { SystemEvents.SessionEnding -= OnSystemSessionEnding; UpdateAppState(false); ManageWatchdog(false); if (monitor != null) monitor.Stop(); if (trayIcon != null) trayIcon.Dispose(); }
         }
 
+
         private void SaveConfig()
         {
             int.TryParse(countdownTextbox.Text, out int minutes); if (minutes < 1) minutes = 1;
@@ -256,20 +318,32 @@ namespace AzeuServices_V1
                 NoSmokingButtonTextColor = lastSavedSettings.NoSmokingButtonTextColor,
                 NoSmokingButtonRadius = lastSavedSettings.NoSmokingButtonRadius,
                 NoSmokingDuration = lastSavedSettings.NoSmokingDuration,
+                NoSmokingImagePath = lastSavedSettings.NoSmokingImagePath,
+                NoSmokingImageSizeMode = lastSavedSettings.NoSmokingImageSizeMode,
 
                 LimitDesktopUsage = limitDesktopUsageCheckbox.Checked,
                 LimitDesktopHour = limitDesktopHourTextbox.Text,
                 LimitDesktopMin = limitDesktopMinTextbox.Text,
                 LimitDesktopAMPM = limitDesktopAMorPMComboBox.Text,
-                LimitDesktopOpenHour = limitDesktopHourOpenTextbox.Text,
-                LimitDesktopOpenMin = limitDesktopMinOpenTextbox.Text,
-                LimitDesktopOpenAMPM = limitDesktopOpenAMorPMComboBox.Text,
+
+                // Corrected Assignments:
+                LimitDesktopHourOpen = limitDesktopHourOpenTextbox.Text,
+                LimitDesktopMinOpen = limitDesktopMinOpenTextbox.Text,
+                LimitDesktopAMPMOpen = limitDesktopOpenAMorPMComboBox.Text,
+
                 LimitDesktopAction = limitDesktopActionComboBox.Text,
                 LimitDesktopImagePath = limitDesktopImagePathTexbox.Text,
                 LimitShow5min = limitDesktopShowDialog5minCheckbox.Checked,
                 LimitShow10min = limitDesktopShowDialog10minCheckbox.Checked,
                 LimitShow30min = limitDesktopShowDialog30minCheckbox.Checked,
-                LimitShutdownAfter3Min = limitDesktopShutdownAfter3Minutes.Checked
+                LimitShutdownAfter3Min = limitDesktopShutdownAfter3Minutes.Checked,
+
+                LimitMessage = lastSavedSettings.LimitMessage,
+                LimitFontFamily = lastSavedSettings.LimitFontFamily,
+                LimitFontSize = lastSavedSettings.LimitFontSize,
+                LimitBgColor = lastSavedSettings.LimitBgColor,
+                LimitTextColor = lastSavedSettings.LimitTextColor,
+                LimitShowBypassInstructions = lastSavedSettings.LimitShowBypassInstructions
             };
 
             AppSettings.Save(newSettings);
@@ -309,9 +383,12 @@ namespace AzeuServices_V1
                 limitDesktopHourTextbox.Text = lastSavedSettings.LimitDesktopHour;
                 limitDesktopMinTextbox.Text = lastSavedSettings.LimitDesktopMin;
                 limitDesktopAMorPMComboBox.Text = lastSavedSettings.LimitDesktopAMPM;
-                limitDesktopHourOpenTextbox.Text = lastSavedSettings.LimitDesktopOpenHour;
-                limitDesktopMinOpenTextbox.Text = lastSavedSettings.LimitDesktopOpenMin;
-                limitDesktopOpenAMorPMComboBox.Text = lastSavedSettings.LimitDesktopOpenAMPM;
+
+                // Corrected Loading:
+                limitDesktopHourOpenTextbox.Text = lastSavedSettings.LimitDesktopHourOpen;
+                limitDesktopMinOpenTextbox.Text = lastSavedSettings.LimitDesktopMinOpen;
+                limitDesktopOpenAMorPMComboBox.Text = lastSavedSettings.LimitDesktopAMPMOpen;
+
                 limitDesktopActionComboBox.Text = lastSavedSettings.LimitDesktopAction;
                 limitDesktopImagePathTexbox.Text = lastSavedSettings.LimitDesktopImagePath;
                 limitDesktopShowDialog5minCheckbox.Checked = lastSavedSettings.LimitShow5min;
@@ -350,7 +427,45 @@ namespace AzeuServices_V1
         private void UpdateSettingsStatus()
         {
             if (isLoading) return;
-            bool hasChanges = (shutdownAFKCheckbox.Checked != lastSavedSettings.ShutdownIfAFK) || (noSmokingDialogCheckbox.Checked != lastSavedSettings.EnableNoSmoking) || (limitDesktopUsageCheckbox.Checked != lastSavedSettings.LimitDesktopUsage);
+
+            bool hasChanges = false;
+
+            // 1. AFK Settings Comparison
+            if (shutdownAFKCheckbox.Checked != lastSavedSettings.ShutdownIfAFK) hasChanges = true;
+            if (countdownTextbox.Text != lastSavedSettings.CountdownMinutes.ToString()) hasChanges = true;
+            if (showCountdownCheckbox.Checked != lastSavedSettings.ShowCountdown) hasChanges = true;
+            if (countdownTopMostCheckbox.Checked != lastSavedSettings.CountdownTopMost) hasChanges = true;
+            if (countdownOpacityCheckbox.Checked != lastSavedSettings.EnableOpacity) hasChanges = true;
+            if (countdownOpacityTextbox.Text != lastSavedSettings.CountdownOpacity.ToString()) hasChanges = true;
+
+            // 2. No Smoking Comparison
+            if (noSmokingDialogCheckbox.Checked != lastSavedSettings.EnableNoSmoking) hasChanges = true;
+
+            // 3. Curfew Schedule Comparison
+            if (limitDesktopUsageCheckbox.Checked != lastSavedSettings.LimitDesktopUsage) hasChanges = true;
+            if (limitDesktopHourTextbox.Text != lastSavedSettings.LimitDesktopHour) hasChanges = true;
+            if (limitDesktopMinTextbox.Text != lastSavedSettings.LimitDesktopMin) hasChanges = true;
+            if (limitDesktopAMorPMComboBox.Text != lastSavedSettings.LimitDesktopAMPM) hasChanges = true;
+            if (limitDesktopHourOpenTextbox.Text != lastSavedSettings.LimitDesktopHourOpen) hasChanges = true;
+            if (limitDesktopMinOpenTextbox.Text != lastSavedSettings.LimitDesktopMinOpen) hasChanges = true;
+            if (limitDesktopOpenAMorPMComboBox.Text != lastSavedSettings.LimitDesktopAMPMOpen) hasChanges = true;
+
+            // 4. Curfew Action/Image Comparison
+            if (limitDesktopActionComboBox.Text != lastSavedSettings.LimitDesktopAction) hasChanges = true;
+            if (limitDesktopImagePathTexbox.Text != lastSavedSettings.LimitDesktopImagePath) hasChanges = true;
+            if (limitDesktopShowDialog5minCheckbox.Checked != lastSavedSettings.LimitShow5min) hasChanges = true;
+            if (limitDesktopShowDialog10minCheckbox.Checked != lastSavedSettings.LimitShow10min) hasChanges = true;
+            if (limitDesktopShowDialog30minCheckbox.Checked != lastSavedSettings.LimitShow30min) hasChanges = true;
+            if (limitDesktopShutdownAfter3Minutes.Checked != lastSavedSettings.LimitShutdownAfter3Min) hasChanges = true;
+
+            // 5. General Settings Comparison
+            if (adminShutdownCheckbox.Checked != lastSavedSettings.AdminShutdown) hasChanges = true;
+            if (applicationServiceCheckbox.Checked != lastSavedSettings.ApplicationServiceActive) hasChanges = true;
+            if (applicationHighPriorityCheckbox.Checked != lastSavedSettings.ApplicationHighPriority) hasChanges = true;
+            if (startupCheckbox.Checked != lastSavedSettings.LaunchOnStartup) hasChanges = true;
+            if (minimizeTrayCheckbox.Checked != lastSavedSettings.MinimizeToTray) hasChanges = true;
+            if (!string.IsNullOrEmpty(newPasswordTextbox.Text)) hasChanges = true;
+
             settingStatusLabel.Text = hasChanges ? "Settings not saved" : "No changes";
             settingStatusLabel.ForeColor = hasChanges ? Color.OrangeRed : Color.Gray;
         }
@@ -369,44 +484,141 @@ namespace AzeuServices_V1
                 if (countdownWindow != null) { countdownWindow.AllowClose = true; countdownWindow.Close(); countdownWindow = null; }
                 isCountingDown = false; return;
             }
+
             if (countdownWindow == null || countdownWindow.IsDisposed)
             {
-                countdownWindow = new CountdownForm(); countdownWindow.PositionBottomRight();
+                countdownWindow = new CountdownForm();
+                countdownWindow.PositionBottomRight();
                 countdownWindow.OnRequestOpen = () => TryOpenFromTray();
                 countdownWindow.OnRequestToggle = () => ToggleWidgetManual();
                 countdownWindow.OnRequestExit = () => TryExitApp();
+
+                // Ensure the TopMost property is set based on the checkbox right when created
+                countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
+
+                if (countdownOpacityCheckbox.Checked)
+                {
+                    if (int.TryParse(countdownOpacityTextbox.Text, out int op))
+                        countdownWindow.ApplyOpacity(op);
+                }
+                else
+                {
+                    countdownWindow.ApplyOpacity(100);
+                }
+
                 countdownWindow.Show();
             }
 
             bool isTriggered = (monitor.IsKbAfk && monitor.IsMouseAfk) || (monitor.IsKbSuspicious && monitor.IsMouseAfk) || (monitor.IsMouseClickSuspicious && monitor.IsKbAfk);
             if (isTriggered)
             {
-                isCountingDown = true; countdownWindow.SetAlertMode(true); currentSecondsLeft--;
+                isCountingDown = true;
+                countdownWindow.SetAlertMode(true);
+                currentSecondsLeft--;
                 if (currentSecondsLeft <= 0 && startupGraceSeconds <= 0) PerformShutdown("AFK Detection");
             }
-            else { isCountingDown = false; currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60; countdownWindow.SetAlertMode(false); }
+            else
+            {
+                isCountingDown = false;
+                currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60;
+                countdownWindow.SetAlertMode(false);
+            }
 
             if (startupGraceSeconds > 0) startupGraceSeconds--;
             countdownWindow?.UpdateTime(currentSecondsLeft);
         }
 
+        protected override void WndProc(ref Message m)
+        {
+            // If the message matches our custom "OpenRequest" string
+            if (m.Msg == _openRequestMsg && _openRequestMsg != 0)
+            {
+                // We use BeginInvoke to ensure the UI thread is ready to show the dialog
+                this.BeginInvoke(new Action(() => {
+                    TryOpenFromTray();
+                }));
+            }
+            base.WndProc(ref m);
+        }
+
+
         private void RefreshUIEnableState()
         {
-            bool isShutdownEnabled = shutdownAFKCheckbox.Checked;
-            countdownMinutesLabel.Enabled = isShutdownEnabled;
-            countdownTextbox.Enabled = isShutdownEnabled;
-            showCountdownCheckbox.Enabled = isShutdownEnabled;
+            // 1. AFK Master Group
+            bool isAFKEnabled = shutdownAFKCheckbox.Checked;
+            countdownMinutesLabel.Enabled = isAFKEnabled;
+            countdownTextbox.Enabled = isAFKEnabled;
+            showCountdownCheckbox.Enabled = isAFKEnabled;
+
+            // 2. Countdown Widget Sub-Group (Dependent on AFK and Show Countdown)
+            bool isWidgetAllowed = isAFKEnabled && showCountdownCheckbox.Checked;
+            countdownTopMostCheckbox.Enabled = isWidgetAllowed;
+            countdownOpacityCheckbox.Enabled = isWidgetAllowed;
+
+            // 3. Opacity Textbox (Dependent on Widget being allowed AND Opacity being checked)
+            countdownOpacityTextbox.Enabled = isWidgetAllowed && countdownOpacityCheckbox.Checked;
+
+            // 4. No Smoking Group
             viewNoSmokingDialog.Enabled = noSmokingDialogCheckbox.Checked;
-            limitDesktopHourTextbox.Enabled = limitDesktopUsageCheckbox.Checked;
+
+            // 5. Curfew Group
+            bool isCurfewEnabled = limitDesktopUsageCheckbox.Checked;
+            limitDesktopHourTextbox.Enabled = isCurfewEnabled;
+            limitDesktopMinTextbox.Enabled = isCurfewEnabled;
+            limitDesktopAMorPMComboBox.Enabled = isCurfewEnabled;
+            limitDesktopHourOpenTextbox.Enabled = isCurfewEnabled;
+            limitDesktopMinOpenTextbox.Enabled = isCurfewEnabled;
+            limitDesktopOpenAMorPMComboBox.Enabled = isCurfewEnabled;
+            limitDesktopActionComboBox.Enabled = isCurfewEnabled;
+
+            // --- LOGIC FOR ACTION SELECTION ---
+            // Enable image controls ONLY if Curfew is enabled AND action is "Show Image Dialog"
+            bool isImageAction = limitDesktopActionComboBox.Text == "Show Image Dialog";
+            bool enableImageControls = isCurfewEnabled && isImageAction;
+
+            limitDesktopImagePathTexbox.Enabled = enableImageControls;
+            limitDesktopSelectImageBtn.Enabled = enableImageControls;
+            viewLimitDesktopActionDialogBtn.Enabled = enableImageControls;
+
+            // Warnings and 3-min shutdown are only useful if Curfew is active
+            limitDesktopShowDialog5minCheckbox.Enabled = isCurfewEnabled;
+            limitDesktopShowDialog10minCheckbox.Enabled = isCurfewEnabled;
+            limitDesktopShowDialog30minCheckbox.Enabled = isCurfewEnabled;
+            limitDesktopShutdownAfter3Minutes.Enabled = isCurfewEnabled;
         }
 
         private void OnUIStateChanged(object sender, EventArgs e)
         {
-            if (countdownWindow != null) countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
-            RefreshUIEnableState(); ManageCountdownLogic(); UpdateSettingsStatus();
+            // Apply immediate changes to the countdown window if it is currently open
+            if (countdownWindow != null && !countdownWindow.IsDisposed)
+            {
+                // Fix: Standard property assignment now works because we removed CreateParams override
+                countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
+
+                // Apply Opacity live
+                if (countdownOpacityCheckbox.Checked)
+                {
+                    if (int.TryParse(countdownOpacityTextbox.Text, out int opacityPercent))
+                    {
+                        countdownWindow.ApplyOpacity(opacityPercent);
+                    }
+                }
+                else
+                {
+                    countdownWindow.ApplyOpacity(100);
+                }
+            }
+
+            RefreshUIEnableState();
+            UpdateSettingsStatus();
+            ManageCountdownLogic();
         }
 
-        private void applicationHighPriority_CheckedChanged(object sender, EventArgs e) => ApplyHighPriorityLogic(applicationHighPriorityCheckbox.Checked);
+        private void applicationHighPriority_CheckedChanged(object sender, EventArgs e)
+        {
+            ApplyHighPriorityLogic(applicationHighPriorityCheckbox.Checked);
+            UpdateSettingsStatus();
+        }
 
         private void ApplyHighPriorityLogic(bool enable)
         {
@@ -433,10 +645,11 @@ namespace AzeuServices_V1
 
         private void viewLimitDesktopActionDialogBtn_Click(object sender, EventArgs e)
         {
-            using (LimitClosedForm preview = new LimitClosedForm(lastSavedSettings, null, true)) preview.ShowDialog();
+            using (LimitEditorForm editor = new LimitEditorForm())
+            {
+                if (editor.ShowDialog() == DialogResult.OK) { lastSavedSettings = AppSettings.Load(); UpdateSettingsStatus(); }
+            }
         }
-
-        // --- THE MISSING VALIDATION FUNCTIONS START HERE ---
 
         private void OnSettingChanged(object sender, EventArgs e) => UpdateSettingsStatus();
 
@@ -475,6 +688,13 @@ namespace AzeuServices_V1
             if (!int.TryParse(countdownOpacityTextbox.Text, out int val)) val = 80;
             if (val < 10) val = 10; if (val > 100) val = 100;
             countdownOpacityTextbox.Text = val.ToString();
+
+            // Apply to live window immediately
+            if (countdownWindow != null && !countdownWindow.IsDisposed && countdownOpacityCheckbox.Checked)
+            {
+                countdownWindow.ApplyOpacity(val);
+            }
+
             UpdateSettingsStatus();
         }
     }

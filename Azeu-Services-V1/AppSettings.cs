@@ -9,7 +9,6 @@ namespace AzeuServices_V1
 {
     public class AppSettings
     {
-        // --- REMOTE CONFIG URL ---
         private static string RemoteUrl = "https://your-website.com/settings.json";
 
         // Basics
@@ -28,7 +27,7 @@ namespace AzeuServices_V1
         public bool IsAppRunningState { get; set; } = false;
         public bool StartInTray { get; set; } = false;
 
-        // No Smoking
+        // No Smoking Settings
         public bool EnableNoSmoking { get; set; } = false;
         public string NoSmokingMessage { get; set; } = "NO SMOKING INSIDE THE PISONET";
         public string NoSmokingButtonText { get; set; } = "I Understand";
@@ -39,37 +38,48 @@ namespace AzeuServices_V1
         public int NoSmokingDuration { get; set; } = 3;
         public string NoSmokingButtonBgColor { get; set; } = "DimGray";
         public string NoSmokingButtonTextColor { get; set; } = "White";
-
         public string NoSmokingFontFamily { get; set; } = "Arial";
         public int NoSmokingButtonBottomMargin { get; set; } = 100;
         public int NoSmokingButtonWidth { get; set; } = 400;
         public int NoSmokingButtonHeight { get; set; } = 100;
         public int NoSmokingButtonFontSize { get; set; } = 20;
-
         public string NoSmokingImagePath { get; set; } = "";
         public string NoSmokingImageSizeMode { get; set; } = "Stretch";
 
-
-
-        // Limit Desktop
+        // Desktop Curfew (Limit) Schedule Settings
         public bool LimitDesktopUsage { get; set; } = false;
         public string LimitDesktopHour { get; set; } = "12";
         public string LimitDesktopMin { get; set; } = "00";
         public string LimitDesktopAMPM { get; set; } = "PM";
-        public string LimitDesktopOpenHour { get; set; } = "08";
-        public string LimitDesktopOpenMin { get; set; } = "00";
-        public string LimitDesktopOpenAMPM { get; set; } = "AM";
+        public string LimitDesktopHourOpen { get; set; } = "08";
+        public string LimitDesktopMinOpen { get; set; } = "00";
+        public string LimitDesktopAMPMOpen { get; set; } = "AM";
         public string LimitDesktopAction { get; set; } = "Shutdown";
         public string LimitDesktopImagePath { get; set; } = "";
+        public string LimitDesktopImageSizeMode { get; set; } = "Stretch";
         public bool LimitShow5min { get; set; } = false;
         public bool LimitShow10min { get; set; } = false;
         public bool LimitShow30min { get; set; } = false;
         public bool LimitShutdownAfter3Min { get; set; } = false;
 
+        // --- Curfew Styling Settings (MAIN MESSAGE) ---
+        public string LimitMessage { get; set; } = "PISONET IS NOW CLOSED";
+        public string LimitFontFamily { get; set; } = "Arial";
+        public int LimitFontSize { get; set; } = 48;
+        public string LimitBgColor { get; set; } = "Black";
+        public string LimitTextColor { get; set; } = "White";
+        public bool LimitShowBypassInstructions { get; set; } = false;
+
+        // --- NEW: Curfew Returning Time Styles ---
+        public bool LimitShowReturningTime { get; set; } = true;
+        public string LimitReturningFontFamily { get; set; } = "Arial";
+        public int LimitReturningFontSize { get; set; } = 24;
+        public string LimitReturningTextColor { get; set; } = "White";
+        public int LimitReturningBottomMargin { get; set; } = 20;
+
         [System.Text.Json.Serialization.JsonIgnore]
         public DateTime? LastBypassDate { get; set; } = null;
         private static string FilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
-
 
         public static void Save(AppSettings settings)
         {
@@ -80,8 +90,6 @@ namespace AzeuServices_V1
         public static AppSettings Load()
         {
             AppSettings settings = null;
-
-            // 1. Prioritize Local File
             if (File.Exists(FilePath))
             {
                 try
@@ -91,8 +99,6 @@ namespace AzeuServices_V1
                 }
                 catch { settings = new AppSettings(); }
             }
-
-            // 2. If local missing or failed, try Remote
             if (settings == null && !string.IsNullOrEmpty(RemoteUrl) && RemoteUrl.StartsWith("http"))
             {
                 try
@@ -109,17 +115,9 @@ namespace AzeuServices_V1
                 }
                 catch { settings = new AppSettings(); }
             }
-
-            // 3. Final Fallback
             if (settings == null) settings = new AppSettings();
-
-            // --- CRITICAL SAFETY FIX ---
-            // Ensure countdown is never less than 1 minute to prevent instant shutdown on load
             if (settings.CountdownMinutes < 1) settings.CountdownMinutes = 1;
-
-            // Save the sanitized version
             Save(settings);
-
             return settings;
         }
     }

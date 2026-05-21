@@ -1,59 +1,60 @@
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices; // Added
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace AzeuServices_V1
 {
     internal static class Program
     {
-        // Import User32 to bring the existing window to front
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        // Import to find the hidden window by its name
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
-        private const int SW_RESTORE = 9;
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern uint RegisterWindowMessage(string lpString);
+
+        [DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        // Unique string to identify our custom message
+        public const string MessageName = "AzeuServices_RequestOpenSettings";
 
         [STAThread]
-        static void Main(string[] args) // Add string[] args here
+        static void Main(string[] args)
         {
             ApplicationConfiguration.Initialize();
 
-            // 1. Single Instance Logic - Be careful not to kill yourself
-            string procName = Process.GetCurrentProcess().ProcessName;
-            Process current = Process.GetCurrentProcess();
-            Process[] processes = Process.GetProcessesByName(procName);
+            // 1. Try to find the window of the already running instance
+            // We use the "Text" property of Form1 defined in your Designer ("Azeu Services V1")
+            IntPtr existingWindowHandle = FindWindow(null, "Azeu Services V1");
 
-            foreach (Process p in processes)
+            if (existingWindowHandle != IntPtr.Zero)
             {
-                if (p.Id != current.Id)
-                {
-                    // If another instance is already running, focus it and quit this one
-                    IntPtr handle = p.MainWindowHandle;
-                    ShowWindow(handle, 9); // 9 = SW_RESTORE
-                    SetForegroundWindow(handle);
-                    return;
-                }
+                // 2. An instance is already running.
+                // Register the same message ID as the first instance.
+                uint msg = RegisterWindowMessage(MessageName);
+
+                // 3. Send the message specifically to the existing window.
+                PostMessage(existingWindowHandle, msg, IntPtr.Zero, IntPtr.Zero);
+
+                // 4. Close this instance.
+                return;
             }
 
-            // 2. Load Settings
+            // 5. No instance found, proceed with normal startup.
             AppSettings settings = AppSettings.Load();
 
-            // 3. No Smoking Logic
             if (settings.EnableNoSmoking)
             {
                 double uptimeSeconds = TimeSpan.FromMilliseconds(Environment.TickCount64).TotalSeconds;
-                // Only show if the PC was turned on less than 60 seconds ago
                 if (uptimeSeconds < 60)
                 {
                     NoSmokingForm warning = new NoSmokingForm(settings);
                     warning.Show();
-                    // We use Show() so Form1 can load in the background
                 }
             }
 
-            // 4. Run the main application
             Application.Run(new Form1());
         }
     }

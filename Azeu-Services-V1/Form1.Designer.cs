@@ -55,8 +55,6 @@
             limitDesktopShowDialog30minCheckbox = new CheckBox();
             limitDesktopShutdownAfter3Minutes = new CheckBox();
             viewLimitDesktopActionDialogBtn = new Button();
-            pictureBox1 = new PictureBox();
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             SuspendLayout();
             // 
             // shutdownAFKCheckbox
@@ -112,6 +110,7 @@
             countdownTextbox.Name = "countdownTextbox";
             countdownTextbox.Size = new Size(40, 23);
             countdownTextbox.TabIndex = 5;
+            countdownTextbox.TextChanged += OnSettingChanged;
             countdownTextbox.KeyPress += countdownTextbox_KeyPress;
             countdownTextbox.Leave += countdownTextbox_Leave;
             // 
@@ -211,6 +210,7 @@
             countdownOpacityTextbox.Name = "countdownOpacityTextbox";
             countdownOpacityTextbox.Size = new Size(30, 23);
             countdownOpacityTextbox.TabIndex = 27;
+            countdownOpacityTextbox.TextChanged += OnSettingChanged;
             countdownOpacityTextbox.KeyPress += countdownOpacityTextbox_KeyPress;
             countdownOpacityTextbox.Leave += countdownOpacityTextbox_Leave;
             // 
@@ -297,7 +297,7 @@
             limitDesktopUsageCheckbox.TabIndex = 35;
             limitDesktopUsageCheckbox.Text = "Enable Desktop Curfew";
             limitDesktopUsageCheckbox.UseVisualStyleBackColor = true;
-            limitDesktopUsageCheckbox.CheckedChanged += OnSettingChanged;
+            limitDesktopUsageCheckbox.CheckedChanged += OnUIStateChanged;
             // 
             // limitDesktopHourTextbox
             // 
@@ -305,6 +305,7 @@
             limitDesktopHourTextbox.Name = "limitDesktopHourTextbox";
             limitDesktopHourTextbox.Size = new Size(50, 23);
             limitDesktopHourTextbox.TabIndex = 36;
+            limitDesktopHourTextbox.TextChanged += OnSettingChanged;
             limitDesktopHourTextbox.KeyPress += limitDesktopNumeric_KeyPress;
             limitDesktopHourTextbox.Leave += limitDesktopNumeric_Leave;
             // 
@@ -314,6 +315,7 @@
             limitDesktopMinTextbox.Name = "limitDesktopMinTextbox";
             limitDesktopMinTextbox.Size = new Size(50, 23);
             limitDesktopMinTextbox.TabIndex = 37;
+            limitDesktopMinTextbox.TextChanged += OnSettingChanged;
             limitDesktopMinTextbox.KeyPress += limitDesktopNumeric_KeyPress;
             limitDesktopMinTextbox.Leave += limitDesktopNumeric_Leave;
             // 
@@ -323,6 +325,7 @@
             limitDesktopHourOpenTextbox.Name = "limitDesktopHourOpenTextbox";
             limitDesktopHourOpenTextbox.Size = new Size(50, 23);
             limitDesktopHourOpenTextbox.TabIndex = 38;
+            limitDesktopHourOpenTextbox.TextChanged += OnSettingChanged;
             limitDesktopHourOpenTextbox.KeyPress += limitDesktopNumeric_KeyPress;
             limitDesktopHourOpenTextbox.Leave += limitDesktopNumeric_Leave;
             // 
@@ -332,12 +335,14 @@
             limitDesktopMinOpenTextbox.Name = "limitDesktopMinOpenTextbox";
             limitDesktopMinOpenTextbox.Size = new Size(50, 23);
             limitDesktopMinOpenTextbox.TabIndex = 39;
+            limitDesktopMinOpenTextbox.TextChanged += OnSettingChanged;
             limitDesktopMinOpenTextbox.KeyPress += limitDesktopNumeric_KeyPress;
             limitDesktopMinOpenTextbox.Leave += limitDesktopNumeric_Leave;
             // 
             // limitDesktopAMorPMComboBox
             // 
             limitDesktopAMorPMComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            limitDesktopAMorPMComboBox.Items.AddRange(new object[] { "AM", "PM" });
             limitDesktopAMorPMComboBox.Location = new Point(755, 125);
             limitDesktopAMorPMComboBox.Name = "limitDesktopAMorPMComboBox";
             limitDesktopAMorPMComboBox.Size = new Size(50, 23);
@@ -347,6 +352,7 @@
             // limitDesktopOpenAMorPMComboBox
             // 
             limitDesktopOpenAMorPMComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            limitDesktopOpenAMorPMComboBox.Items.AddRange(new object[] { "AM", "PM" });
             limitDesktopOpenAMorPMComboBox.Location = new Point(755, 183);
             limitDesktopOpenAMorPMComboBox.Name = "limitDesktopOpenAMorPMComboBox";
             limitDesktopOpenAMorPMComboBox.Size = new Size(50, 23);
@@ -356,11 +362,12 @@
             // limitDesktopActionComboBox
             // 
             limitDesktopActionComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            limitDesktopActionComboBox.Items.AddRange(new object[] { "Shutdown", "Show Image Dialog" });
             limitDesktopActionComboBox.Location = new Point(635, 240);
             limitDesktopActionComboBox.Name = "limitDesktopActionComboBox";
             limitDesktopActionComboBox.Size = new Size(150, 23);
             limitDesktopActionComboBox.TabIndex = 7;
-            limitDesktopActionComboBox.SelectedIndexChanged += OnSettingChanged;
+            this.limitDesktopActionComboBox.SelectedIndexChanged += new System.EventHandler(this.OnUIStateChanged);
             // 
             // limitDesktopImagePathTexbox
             // 
@@ -386,6 +393,7 @@
             limitDesktopShowDialog5minCheckbox.Size = new Size(200, 23);
             limitDesktopShowDialog5minCheckbox.TabIndex = 4;
             limitDesktopShowDialog5minCheckbox.Text = "Show 5 min warning";
+            limitDesktopShowDialog5minCheckbox.UseVisualStyleBackColor = true;
             limitDesktopShowDialog5minCheckbox.CheckedChanged += OnSettingChanged;
             // 
             // limitDesktopShowDialog10minCheckbox
@@ -395,6 +403,7 @@
             limitDesktopShowDialog10minCheckbox.Size = new Size(200, 23);
             limitDesktopShowDialog10minCheckbox.TabIndex = 3;
             limitDesktopShowDialog10minCheckbox.Text = "Show 10 min warning";
+            limitDesktopShowDialog10minCheckbox.UseVisualStyleBackColor = true;
             limitDesktopShowDialog10minCheckbox.CheckedChanged += OnSettingChanged;
             // 
             // limitDesktopShowDialog30minCheckbox
@@ -404,6 +413,7 @@
             limitDesktopShowDialog30minCheckbox.Size = new Size(200, 23);
             limitDesktopShowDialog30minCheckbox.TabIndex = 2;
             limitDesktopShowDialog30minCheckbox.Text = "Show 30 min warning";
+            limitDesktopShowDialog30minCheckbox.UseVisualStyleBackColor = true;
             limitDesktopShowDialog30minCheckbox.CheckedChanged += OnSettingChanged;
             // 
             // limitDesktopShutdownAfter3Minutes
@@ -413,6 +423,7 @@
             limitDesktopShutdownAfter3Minutes.Size = new Size(200, 23);
             limitDesktopShutdownAfter3Minutes.TabIndex = 1;
             limitDesktopShutdownAfter3Minutes.Text = "Shutdown after 3 min";
+            limitDesktopShutdownAfter3Minutes.UseVisualStyleBackColor = true;
             limitDesktopShutdownAfter3Minutes.CheckedChanged += OnSettingChanged;
             // 
             // viewLimitDesktopActionDialogBtn
@@ -422,22 +433,14 @@
             viewLimitDesktopActionDialogBtn.Size = new Size(150, 23);
             viewLimitDesktopActionDialogBtn.TabIndex = 0;
             viewLimitDesktopActionDialogBtn.Text = "Preview Curfew screen";
+            viewLimitDesktopActionDialogBtn.UseVisualStyleBackColor = true;
             viewLimitDesktopActionDialogBtn.Click += viewLimitDesktopActionDialogBtn_Click;
-            // 
-            // pictureBox1
-            // 
-            pictureBox1.Location = new Point(300, 327);
-            pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(100, 50);
-            pictureBox1.TabIndex = 40;
-            pictureBox1.TabStop = false;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(880, 650);
-            Controls.Add(pictureBox1);
             Controls.Add(viewLimitDesktopActionDialogBtn);
             Controls.Add(limitDesktopShutdownAfter3Minutes);
             Controls.Add(limitDesktopShowDialog30minCheckbox);
@@ -480,7 +483,6 @@
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Azeu Services V1";
             FormClosing += OnFormClosing;
-            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -525,6 +527,5 @@
         private CheckBox limitDesktopShowDialog30minCheckbox;
         private CheckBox limitDesktopShutdownAfter3Minutes;
         private Button viewLimitDesktopActionDialogBtn;
-        private PictureBox pictureBox1;
     }
 }

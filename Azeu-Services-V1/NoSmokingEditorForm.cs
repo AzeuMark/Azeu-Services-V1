@@ -53,7 +53,8 @@ namespace AzeuServices_V1
                 if (ctrl is ComboBox cb) cb.SelectedIndexChanged += (s, e) => UpdatePreview();
             }
 
-            btnSelectImage.Click += (s, e) => {
+            btnSelectImage.Click += (s, e) =>
+            {
                 using (OpenFileDialog ofd = new OpenFileDialog { Filter = "Images|*.jpg;*.png;*.bmp" })
                 {
                     if (ofd.ShowDialog() == DialogResult.OK)
@@ -64,11 +65,11 @@ namespace AzeuServices_V1
                 }
             };
 
-            btnFullScreen.Click += (s, e) => RunFullScreenTest();
             btnSave.Click += (s, e) => SaveAndClose();
             btnCancel.Click += (s, e) => this.Close();
 
-            btnPreviewAction.Paint += (s, e) => {
+            btnPreviewAction.Paint += (s, e) =>
+            {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 Rectangle bounds = new Rectangle(0, 0, btnPreviewAction.Width, btnPreviewAction.Height);
                 float scaleFactor = (float)pnlPreview.Width / Screen.PrimaryScreen.Bounds.Width;
@@ -215,6 +216,11 @@ namespace AzeuServices_V1
             {
                 test.ShowDialog();
             }
+        }
+
+        private void btnFullScreen_Click(object sender, EventArgs e)
+        {
+            RunFullScreenTest();
         }
     }
 }

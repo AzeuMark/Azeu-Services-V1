@@ -19,28 +19,18 @@ namespace AzeuServices_V1
             this.ShowInTaskbar = false;
             this.StartPosition = FormStartPosition.Manual;
 
-            // Ensure it is TopMost by default
-            this.TopMost = true;
+            // REMOVED: hardcoded this.TopMost = true;
 
             SetupContextMenu();
         }
-
 
         protected override bool ShowWithoutActivation
         {
             get { return true; }
         }
 
-        protected override CreateParams CreateParams
-        {
-            get
-            {
-                CreateParams cp = base.CreateParams;
-                cp.ExStyle |= 0x00000008; // WS_EX_TOPMOST
-                return cp;
-            }
-        }
-
+        // REMOVED: CreateParams override that was forcing WS_EX_TOPMOST (0x00000008)
+        // Standard WinForms .TopMost property will now handle this correctly.
 
         private Image? GetImageFromResource(byte[] resourceData)
         {
@@ -59,16 +49,13 @@ namespace AzeuServices_V1
 
         public void UpdateTime(int secondsRemaining)
         {
-            // Safety check: don't process numbers below 0
             if (secondsRemaining < 0) secondsRemaining = 0;
 
             int mins = secondsRemaining / 60;
             int secs = secondsRemaining % 60;
 
-            // Format as 00:00
             lblTimer.Text = string.Format("{0:00}:{1:00}", mins, secs);
         }
-
 
         public void SetAlertMode(bool isAlert)
         {
@@ -84,18 +71,15 @@ namespace AzeuServices_V1
         {
             ContextMenuStrip menu = new ContextMenuStrip();
 
-            // 1. Open Settings
             Image? openImg = GetImageFromResource(Properties.Resources.open_icon);
             menu.Items.Add("Open Settings", openImg, (s, e) => OnRequestOpen?.Invoke());
 
-            // 2. Hide/Show Widget (Store reference to update text later)
             Image? hideImg = GetImageFromResource(Properties.Resources.hide_icon);
             toggleMenuItem = new ToolStripMenuItem("Hide Widget", hideImg, (s, e) => OnRequestToggle?.Invoke());
             menu.Items.Add(toggleMenuItem);
 
             menu.Items.Add(new ToolStripSeparator());
 
-            // 3. Exit System
             Image? exitImg = GetImageFromResource(Properties.Resources.exit_icon);
             menu.Items.Add("Exit System", exitImg, (s, e) => OnRequestExit?.Invoke());
 
@@ -103,7 +87,6 @@ namespace AzeuServices_V1
             lblTimer.ContextMenuStrip = menu;
         }
 
-        // New method to keep the menu in sync with Form1
         public void UpdateMenuUI(bool isHidden)
         {
             if (toggleMenuItem == null) return;
