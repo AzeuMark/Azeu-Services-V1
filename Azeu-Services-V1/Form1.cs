@@ -886,25 +886,31 @@ namespace AzeuServices_V1
 
         private void RefreshUIEnableState()
         {
-            // --- REMOTE SERVICE SECTION ---
-            // The button is enabled ONLY if the checkbox is checked.
-            btnRemoteSettings.Enabled = remoteServiceCheckbox.Checked;
-
-            // --- AFK SECTION ---
+            // 1. AFK Master Group
             bool isAFKEnabled = shutdownAFKCheckbox.Checked;
+
+            // Enable/Disable AFK-related labels and textboxes
             countdownMinutesLabel.Enabled = isAFKEnabled;
             countdownTextbox.Enabled = isAFKEnabled;
+
+            // NEW: Sync the AFK Warning Threshold controls with the master checkbox
+            afkWarningThresholdLabel.Enabled = isAFKEnabled;
+            afkWarningThresholdTextbox.Enabled = isAFKEnabled;
+
             showCountdownCheckbox.Enabled = isAFKEnabled;
 
+            // 2. Countdown Widget Sub-Group (Dependent on AFK and Show Countdown)
             bool isWidgetAllowed = isAFKEnabled && showCountdownCheckbox.Checked;
             countdownTopMostCheckbox.Enabled = isWidgetAllowed;
             countdownOpacityCheckbox.Enabled = isWidgetAllowed;
+
+            // 3. Opacity Textbox (Dependent on Widget being allowed AND Opacity being checked)
             countdownOpacityTextbox.Enabled = isWidgetAllowed && countdownOpacityCheckbox.Checked;
 
-            // --- NO SMOKING SECTION ---
+            // 4. No Smoking Group
             viewNoSmokingDialog.Enabled = noSmokingDialogCheckbox.Checked;
 
-            // --- CURFEW SECTION ---
+            // 5. Curfew Group
             bool isCurfewEnabled = limitDesktopUsageCheckbox.Checked;
             limitDesktopHourTextbox.Enabled = isCurfewEnabled;
             limitDesktopMinTextbox.Enabled = isCurfewEnabled;
@@ -914,12 +920,15 @@ namespace AzeuServices_V1
             limitDesktopOpenAMorPMComboBox.Enabled = isCurfewEnabled;
             limitDesktopActionComboBox.Enabled = isCurfewEnabled;
 
+            // Logic for Action Selection within Curfew
             bool isImageAction = limitDesktopActionComboBox.Text == "Show Image Dialog";
             bool enableImageControls = isCurfewEnabled && isImageAction;
+
             limitDesktopImagePathTexbox.Enabled = enableImageControls;
             limitDesktopSelectImageBtn.Enabled = enableImageControls;
             viewLimitDesktopActionDialogBtn.Enabled = enableImageControls;
 
+            // Warnings and 3-min shutdown are only useful if Curfew is active
             limitDesktopShowDialog5minCheckbox.Enabled = isCurfewEnabled;
             limitDesktopShowDialog10minCheckbox.Enabled = isCurfewEnabled;
             limitDesktopShowDialog30minCheckbox.Enabled = isCurfewEnabled;
