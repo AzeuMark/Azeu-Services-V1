@@ -497,7 +497,6 @@ namespace AzeuServices_V1
 
         private void SaveConfig()
         {
-            // 1. Parse and Validate Numbers
             int.TryParse(countdownTextbox.Text, out int minutes);
             if (minutes < 1) minutes = 1;
 
@@ -505,46 +504,29 @@ namespace AzeuServices_V1
             if (opacity < 10) opacity = 10;
             if (opacity > 100) opacity = 100;
 
-            // Validate the new AFK Warning Threshold (Limit: 10 to 60)
             int.TryParse(afkWarningThresholdTextbox.Text, out int warningSecs);
             if (warningSecs < 10) warningSecs = 10;
             if (warningSecs > 60) warningSecs = 60;
 
-            // Handle Password Change Logic
             string finalPassword = string.IsNullOrEmpty(newPasswordTextbox.Text) ? lastSavedSettings.AdminPassword : newPasswordTextbox.Text;
 
-            // 2. Create the New Settings Object
             var newSettings = new AppSettings
             {
-                // AFK & Countdown Settings
                 ShutdownIfAFK = shutdownAFKCheckbox.Checked,
                 CountdownMinutes = minutes,
-                AfkWarningThreshold = warningSecs, // NEW
+                AfkWarningThreshold = warningSecs,
                 ShowCountdown = showCountdownCheckbox.Checked,
                 CountdownTopMost = countdownTopMostCheckbox.Checked,
                 EnableOpacity = countdownOpacityCheckbox.Checked,
                 CountdownOpacity = opacity,
 
-                // No Smoking Settings
                 EnableNoSmoking = noSmokingDialogCheckbox.Checked,
-                NoSmokingMessage = lastSavedSettings.NoSmokingMessage,
-                NoSmokingButtonText = lastSavedSettings.NoSmokingButtonText,
-                NoSmokingFontSize = lastSavedSettings.NoSmokingFontSize,
-                NoSmokingFontFamily = lastSavedSettings.NoSmokingFontFamily,
-                NoSmokingBgColor = lastSavedSettings.NoSmokingBgColor,
-                NoSmokingTextColor = lastSavedSettings.NoSmokingTextColor,
-                NoSmokingButtonBgColor = lastSavedSettings.NoSmokingButtonBgColor,
-                NoSmokingButtonTextColor = lastSavedSettings.NoSmokingButtonTextColor,
-                NoSmokingButtonRadius = lastSavedSettings.NoSmokingButtonRadius,
-                NoSmokingDuration = lastSavedSettings.NoSmokingDuration,
-                NoSmokingImagePath = lastSavedSettings.NoSmokingImagePath,
-                NoSmokingImageSizeMode = lastSavedSettings.NoSmokingImageSizeMode,
-                NoSmokingButtonBottomMargin = lastSavedSettings.NoSmokingButtonBottomMargin,
-                NoSmokingButtonWidth = lastSavedSettings.NoSmokingButtonWidth,
-                NoSmokingButtonHeight = lastSavedSettings.NoSmokingButtonHeight,
-                NoSmokingButtonFontSize = lastSavedSettings.NoSmokingButtonFontSize,
+                EnableRemoteService = remoteServiceCheckbox.Checked, // NEW FIX
 
-                // Desktop Curfew Settings
+                // Preserve your specific WebSocket settings
+                WebSocketUrl = lastSavedSettings.WebSocketUrl,
+                WebSocketToken = lastSavedSettings.WebSocketToken,
+
                 LimitDesktopUsage = limitDesktopUsageCheckbox.Checked,
                 LimitDesktopHour = limitDesktopHourTextbox.Text,
                 LimitDesktopMin = limitDesktopMinTextbox.Text,
@@ -553,13 +535,11 @@ namespace AzeuServices_V1
                 LimitDesktopMinOpen = limitDesktopMinOpenTextbox.Text,
                 LimitDesktopAMPMOpen = limitDesktopOpenAMorPMComboBox.Text,
                 LimitDesktopAction = limitDesktopActionComboBox.Text,
-                LimitDesktopImagePath = limitDesktopImagePathTexbox.Text,
                 LimitShow5min = limitDesktopShowDialog5minCheckbox.Checked,
                 LimitShow10min = limitDesktopShowDialog10minCheckbox.Checked,
                 LimitShow30min = limitDesktopShowDialog30minCheckbox.Checked,
                 LimitShutdownAfter3Min = limitDesktopShutdownAfter3Minutes.Checked,
 
-                // Curfew Styles (Preserved from Editor)
                 LimitMessage = lastSavedSettings.LimitMessage,
                 LimitFontFamily = lastSavedSettings.LimitFontFamily,
                 LimitFontSize = lastSavedSettings.LimitFontSize,
@@ -573,7 +553,6 @@ namespace AzeuServices_V1
                 LimitReturningTextColor = lastSavedSettings.LimitReturningTextColor,
                 LimitReturningBottomMargin = lastSavedSettings.LimitReturningBottomMargin,
 
-                // Application Basics
                 AdminPassword = finalPassword,
                 LaunchOnStartup = startupCheckbox.Checked,
                 MinimizeToTray = minimizeTrayCheckbox.Checked,
@@ -583,11 +562,9 @@ namespace AzeuServices_V1
                 IsAppRunningState = true
             };
 
-            // 3. Save to File
             AppSettings.Save(newSettings);
             lastSavedSettings = newSettings;
 
-            // 4. Update Internal Running States
             startSeconds = minutes * 60;
             currentSecondsLeft = startSeconds;
 
@@ -596,7 +573,10 @@ namespace AzeuServices_V1
             ManageWatchdog(newSettings.ApplicationServiceActive);
             ResetWarningFlags();
 
-            // Refresh the UI to clear the "Unsaved" status
+            // Re-start or Stop the remote manager based on new settings
+            if (newSettings.EnableRemoteService) RemoteServiceManager.Instance.Start(newSettings);
+            else RemoteServiceManager.Instance.Stop();
+
             UpdateSettingsStatus();
         }
 
@@ -643,7 +623,6 @@ namespace AzeuServices_V1
 
                 // Actions & Warnings
                 limitDesktopActionComboBox.Text = lastSavedSettings.LimitDesktopAction;
-                limitDesktopImagePathTexbox.Text = lastSavedSettings.LimitDesktopImagePath;
                 limitDesktopShowDialog5minCheckbox.Checked = lastSavedSettings.LimitShow5min;
                 limitDesktopShowDialog10minCheckbox.Checked = lastSavedSettings.LimitShow10min;
                 limitDesktopShowDialog30minCheckbox.Checked = lastSavedSettings.LimitShow30min;
@@ -687,14 +666,15 @@ namespace AzeuServices_V1
             // 1. AFK & Countdown Settings Comparison
             if (shutdownAFKCheckbox.Checked != lastSavedSettings.ShutdownIfAFK) hasChanges = true;
             if (countdownTextbox.Text != lastSavedSettings.CountdownMinutes.ToString()) hasChanges = true;
-            if (afkWarningThresholdTextbox.Text != lastSavedSettings.AfkWarningThreshold.ToString()) hasChanges = true; // NEW
+            if (afkWarningThresholdTextbox.Text != lastSavedSettings.AfkWarningThreshold.ToString()) hasChanges = true;
             if (showCountdownCheckbox.Checked != lastSavedSettings.ShowCountdown) hasChanges = true;
             if (countdownTopMostCheckbox.Checked != lastSavedSettings.CountdownTopMost) hasChanges = true;
             if (countdownOpacityCheckbox.Checked != lastSavedSettings.EnableOpacity) hasChanges = true;
             if (countdownOpacityTextbox.Text != lastSavedSettings.CountdownOpacity.ToString()) hasChanges = true;
 
-            // 2. No Smoking Setting Comparison
+            // 2. No Smoking & Remote Service Comparison
             if (noSmokingDialogCheckbox.Checked != lastSavedSettings.EnableNoSmoking) hasChanges = true;
+            if (remoteServiceCheckbox.Checked != lastSavedSettings.EnableRemoteService) hasChanges = true; // NEW FIX
 
             // 3. Curfew Schedule Comparison
             if (limitDesktopUsageCheckbox.Checked != lastSavedSettings.LimitDesktopUsage) hasChanges = true;
@@ -706,8 +686,6 @@ namespace AzeuServices_V1
             if (limitDesktopOpenAMorPMComboBox.Text != lastSavedSettings.LimitDesktopAMPMOpen) hasChanges = true;
 
             // 4. Curfew Action & Warnings Comparison
-            if (limitDesktopActionComboBox.Text != lastSavedSettings.LimitDesktopAction) hasChanges = true;
-            if (limitDesktopImagePathTexbox.Text != lastSavedSettings.LimitDesktopImagePath) hasChanges = true;
             if (limitDesktopShowDialog5minCheckbox.Checked != lastSavedSettings.LimitShow5min) hasChanges = true;
             if (limitDesktopShowDialog10minCheckbox.Checked != lastSavedSettings.LimitShow10min) hasChanges = true;
             if (limitDesktopShowDialog30minCheckbox.Checked != lastSavedSettings.LimitShow30min) hasChanges = true;
@@ -888,27 +866,23 @@ namespace AzeuServices_V1
         {
             // 1. AFK Master Group
             bool isAFKEnabled = shutdownAFKCheckbox.Checked;
-
-            // Enable/Disable AFK-related labels and textboxes
             countdownMinutesLabel.Enabled = isAFKEnabled;
             countdownTextbox.Enabled = isAFKEnabled;
-
-            // NEW: Sync the AFK Warning Threshold controls with the master checkbox
             afkWarningThresholdLabel.Enabled = isAFKEnabled;
             afkWarningThresholdTextbox.Enabled = isAFKEnabled;
-
             showCountdownCheckbox.Enabled = isAFKEnabled;
 
-            // 2. Countdown Widget Sub-Group (Dependent on AFK and Show Countdown)
+            // 2. Countdown Widget Sub-Group
             bool isWidgetAllowed = isAFKEnabled && showCountdownCheckbox.Checked;
             countdownTopMostCheckbox.Enabled = isWidgetAllowed;
             countdownOpacityCheckbox.Enabled = isWidgetAllowed;
-
-            // 3. Opacity Textbox (Dependent on Widget being allowed AND Opacity being checked)
             countdownOpacityTextbox.Enabled = isWidgetAllowed && countdownOpacityCheckbox.Checked;
 
-            // 4. No Smoking Group
+            // 3. No Smoking Group
             viewNoSmokingDialog.Enabled = noSmokingDialogCheckbox.Checked;
+
+            // 4. Remote Service Group (NEW FIX)
+            btnRemoteSettings.Enabled = remoteServiceCheckbox.Checked;
 
             // 5. Curfew Group
             bool isCurfewEnabled = limitDesktopUsageCheckbox.Checked;
@@ -920,15 +894,10 @@ namespace AzeuServices_V1
             limitDesktopOpenAMorPMComboBox.Enabled = isCurfewEnabled;
             limitDesktopActionComboBox.Enabled = isCurfewEnabled;
 
-            // Logic for Action Selection within Curfew
             bool isImageAction = limitDesktopActionComboBox.Text == "Show Image Dialog";
             bool enableImageControls = isCurfewEnabled && isImageAction;
-
-            limitDesktopImagePathTexbox.Enabled = enableImageControls;
-            limitDesktopSelectImageBtn.Enabled = enableImageControls;
             viewLimitDesktopActionDialogBtn.Enabled = enableImageControls;
 
-            // Warnings and 3-min shutdown are only useful if Curfew is active
             limitDesktopShowDialog5minCheckbox.Enabled = isCurfewEnabled;
             limitDesktopShowDialog10minCheckbox.Enabled = isCurfewEnabled;
             limitDesktopShowDialog30minCheckbox.Enabled = isCurfewEnabled;
@@ -1073,12 +1042,6 @@ Loop";
             {
                 if (editor.ShowDialog() == DialogResult.OK) lastSavedSettings = AppSettings.Load();
             }
-        }
-
-        private void limitDesktopSelectImageBtn_Click(object sender, EventArgs e)
-        {
-            using (OpenFileDialog ofd = new OpenFileDialog() { Filter = "Images|*.jpg;*.png" })
-                if (ofd.ShowDialog() == DialogResult.OK) { limitDesktopImagePathTexbox.Text = ofd.FileName; UpdateSettingsStatus(); }
         }
 
         private void viewLimitDesktopActionDialogBtn_Click(object sender, EventArgs e)

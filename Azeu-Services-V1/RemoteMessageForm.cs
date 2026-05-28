@@ -13,14 +13,14 @@ namespace AzeuServices_V1
             this.TopMost = true;
             this.ShowInTaskbar = false;
             this.FormBorderStyle = FormBorderStyle.None;
-            this.BackColor = Color.FromArgb(30, 30, 30); // Dark theme
+            //this.BackColor = Color.FromArgb(30, 30, 30); // Dark theme
 
             lblMessage.Text = message;
 
             // Positioning Logic: Bottom Right, above the Countdown widget
             Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
             // Shift up by 80 pixels to avoid overlapping the Countdown widget
-            this.Location = new Point(workingArea.Right - this.Width - 10,
+            this.Location = new Point(workingArea.Right - this.Width - 5,
                                       workingArea.Bottom - this.Height - 80);
         }
 
@@ -48,53 +48,63 @@ namespace AzeuServices_V1
 
         private void InitializeComponent()
         {
-            this.lblMessage = new Label();
-            this.btnOk = new Button();
-            this.lblHeader = new Label();
-            this.SuspendLayout();
-            // 
-            // lblHeader
-            // 
-            this.lblHeader.BackColor = Color.FromArgb(45, 45, 48);
-            this.lblHeader.Dock = DockStyle.Top;
-            this.lblHeader.ForeColor = Color.White;
-            this.lblHeader.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            this.lblHeader.Location = new Point(0, 0);
-            this.lblHeader.Size = new Size(300, 25);
-            this.lblHeader.Text = "  ADMINISTRATOR MESSAGE";
-            this.lblHeader.TextAlign = ContentAlignment.MiddleLeft;
+            lblMessage = new Label();
+            btnOk = new Button();
+            lblHeader = new Label();
+            SuspendLayout();
             // 
             // lblMessage
             // 
-            this.lblMessage.ForeColor = Color.White;
-            this.lblMessage.Font = new Font("Segoe UI", 10F);
-            this.lblMessage.Location = new Point(12, 35);
-            this.lblMessage.Size = new Size(276, 60);
-            this.lblMessage.TextAlign = ContentAlignment.TopLeft;
-            this.lblMessage.Click += new EventHandler(RemoteMessageForm_Click);
+            lblMessage.AutoEllipsis = true;
+            lblMessage.Font = new Font("Segoe UI", 10F);
+            lblMessage.ForeColor = SystemColors.MenuText;
+            lblMessage.Location = new Point(12, 35);
+            lblMessage.Name = "lblMessage";
+            lblMessage.Size = new Size(276, 60);
+            lblMessage.TabIndex = 1;
+            lblMessage.Text = "ahahahahahaha HAHAHAHAHAHAHAHAHAHAA";
+            lblMessage.Click += RemoteMessageForm_Click;
             // 
             // btnOk
             // 
-            this.btnOk.BackColor = Color.FromArgb(0, 122, 204);
-            this.btnOk.FlatStyle = FlatStyle.Flat;
-            this.btnOk.ForeColor = Color.White;
-            this.btnOk.Location = new Point(213, 102);
-            this.btnOk.Size = new Size(75, 26);
-            this.btnOk.Text = "Got it";
-            this.btnOk.UseVisualStyleBackColor = false;
-            this.btnOk.Click += new EventHandler(btnOk_Click);
+            btnOk.BackColor = Color.FromArgb(0, 122, 204);
+            btnOk.FlatStyle = FlatStyle.Flat;
+            btnOk.ForeColor = Color.White;
+            btnOk.Location = new Point(213, 102);
+            btnOk.Name = "btnOk";
+            btnOk.Size = new Size(75, 26);
+            btnOk.TabIndex = 0;
+            btnOk.Text = "Nigga";
+            btnOk.UseVisualStyleBackColor = false;
+            btnOk.Click += btnOk_Click;
+            // 
+            // lblHeader
+            // 
+            lblHeader.BackColor = Color.FromArgb(45, 45, 48);
+            lblHeader.Dock = DockStyle.Top;
+            lblHeader.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblHeader.ForeColor = Color.White;
+            lblHeader.Location = new Point(0, 0);
+            lblHeader.Name = "lblHeader";
+            lblHeader.Size = new Size(300, 25);
+            lblHeader.TabIndex = 2;
+            lblHeader.Text = "  AZEUMARK MESSAGE";
+            lblHeader.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // RemoteMessageForm
             // 
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(300, 140);
-            this.Controls.Add(this.btnOk);
-            this.Controls.Add(this.lblMessage);
-            this.Controls.Add(this.lblHeader);
-            this.StartPosition = FormStartPosition.Manual;
-            this.Click += new EventHandler(RemoteMessageForm_Click);
-            this.ResumeLayout(false);
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = SystemColors.ControlLightLight;
+            ClientSize = new Size(300, 140);
+            Controls.Add(btnOk);
+            Controls.Add(lblMessage);
+            Controls.Add(lblHeader);
+            FormBorderStyle = FormBorderStyle.None;
+            Name = "RemoteMessageForm";
+            StartPosition = FormStartPosition.Manual;
+            Click += RemoteMessageForm_Click;
+            ResumeLayout(false);
         }
     }
 }

@@ -48,8 +48,6 @@
             limitDesktopAMorPMComboBox = new ComboBox();
             limitDesktopOpenAMorPMComboBox = new ComboBox();
             limitDesktopActionComboBox = new ComboBox();
-            limitDesktopImagePathTexbox = new TextBox();
-            limitDesktopSelectImageBtn = new Button();
             limitDesktopShowDialog5minCheckbox = new CheckBox();
             limitDesktopShowDialog10minCheckbox = new CheckBox();
             limitDesktopShowDialog30minCheckbox = new CheckBox();
@@ -373,23 +371,6 @@
             limitDesktopActionComboBox.TabIndex = 7;
             limitDesktopActionComboBox.SelectedIndexChanged += OnUIStateChanged;
             // 
-            // limitDesktopImagePathTexbox
-            // 
-            limitDesktopImagePathTexbox.Location = new Point(635, 270);
-            limitDesktopImagePathTexbox.Name = "limitDesktopImagePathTexbox";
-            limitDesktopImagePathTexbox.Size = new Size(150, 23);
-            limitDesktopImagePathTexbox.TabIndex = 6;
-            limitDesktopImagePathTexbox.TextChanged += OnSettingChanged;
-            // 
-            // limitDesktopSelectImageBtn
-            // 
-            limitDesktopSelectImageBtn.Location = new Point(790, 270);
-            limitDesktopSelectImageBtn.Name = "limitDesktopSelectImageBtn";
-            limitDesktopSelectImageBtn.Size = new Size(50, 23);
-            limitDesktopSelectImageBtn.TabIndex = 5;
-            limitDesktopSelectImageBtn.Text = "...";
-            limitDesktopSelectImageBtn.Click += limitDesktopSelectImageBtn_Click;
-            // 
             // limitDesktopShowDialog5minCheckbox
             // 
             limitDesktopShowDialog5minCheckbox.Location = new Point(620, 310);
@@ -472,26 +453,19 @@
             // 
             // afkWarningThresholdTextbox
             // 
-            afkWarningThresholdTextbox.Location = new Point(155, 183);
-            afkWarningThresholdTextbox.Name = "afkWarningThresholdTextbox";
-            afkWarningThresholdTextbox.Size = new Size(40, 23);
-            afkWarningThresholdTextbox.TabIndex = 43;
-            afkWarningThresholdTextbox = new TextBox();
             afkWarningThresholdTextbox.Location = new Point(155, 185);
             afkWarningThresholdTextbox.Name = "afkWarningThresholdTextbox";
             afkWarningThresholdTextbox.Size = new Size(40, 23);
             afkWarningThresholdTextbox.TabIndex = 41;
-            afkWarningThresholdTextbox.TextChanged += new EventHandler(this.OnSettingChanged);
-            afkWarningThresholdTextbox.KeyPress += new KeyPressEventHandler(this.afkWarningThresholdTextbox_KeyPress);
-            afkWarningThresholdTextbox.Leave += new EventHandler(this.afkWarningThresholdTextbox_Leave);
+            afkWarningThresholdTextbox.TextChanged += OnSettingChanged;
+            afkWarningThresholdTextbox.KeyPress += afkWarningThresholdTextbox_KeyPress;
+            afkWarningThresholdTextbox.Leave += afkWarningThresholdTextbox_Leave;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(880, 650);
-            Controls.Add(afkWarningThresholdTextbox);
-            Controls.Add(afkWarningThresholdLabel);
             Controls.Add(remoteServiceCheckbox);
             Controls.Add(btnRemoteSettings);
             Controls.Add(viewLimitDesktopActionDialogBtn);
@@ -499,8 +473,6 @@
             Controls.Add(limitDesktopShowDialog30minCheckbox);
             Controls.Add(limitDesktopShowDialog10minCheckbox);
             Controls.Add(limitDesktopShowDialog5minCheckbox);
-            Controls.Add(limitDesktopSelectImageBtn);
-            Controls.Add(limitDesktopImagePathTexbox);
             Controls.Add(limitDesktopActionComboBox);
             Controls.Add(limitDesktopOpenAMorPMComboBox);
             Controls.Add(limitDesktopAMorPMComboBox);
@@ -532,9 +504,8 @@
             Controls.Add(kboardStatusLabel);
             Controls.Add(suspiciousKeysLabel);
             Controls.Add(shutdownAFKCheckbox);
-            Controls.Add(this.afkWarningThresholdLabel);
-            Controls.Add(this.afkWarningThresholdTextbox);
-
+            Controls.Add(afkWarningThresholdLabel);
+            Controls.Add(afkWarningThresholdTextbox);
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Azeu Services V1";
@@ -576,8 +547,6 @@
         private ComboBox limitDesktopAMorPMComboBox;
         private ComboBox limitDesktopOpenAMorPMComboBox;
         private ComboBox limitDesktopActionComboBox;
-        private TextBox limitDesktopImagePathTexbox;
-        private Button limitDesktopSelectImageBtn;
         private CheckBox limitDesktopShowDialog5minCheckbox;
         private CheckBox limitDesktopShowDialog10minCheckbox;
         private CheckBox limitDesktopShowDialog30minCheckbox;
