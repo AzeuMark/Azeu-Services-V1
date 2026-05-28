@@ -41,6 +41,8 @@ namespace AzeuServices_V1
         private LimitClosedForm? activeLockScreen = null;
 
         private bool isShutdownInProgress = false;
+        private bool isRestartInProgress = false;
+
 
         public Form1()
         {
@@ -61,12 +63,17 @@ namespace AzeuServices_V1
             LoadConfig();
             uiTimer.Start();
 
-            // START REMOTE SERVICE BACKGROUND MANAGER
+            // --- LINK REMOTE COMMANDS TO LOCAL POWER FUNCTIONS ---
+            RemoteServiceManager.Instance.OnRequestShutdown = (reason) => {
+                if (this.IsHandleCreated) this.Invoke(new Action(() => PerformShutdown(reason)));
+            };
+
+            RemoteServiceManager.Instance.OnRequestRestart = (reason) => {
+                if (this.IsHandleCreated) this.Invoke(new Action(() => PerformRestart(reason)));
+            };
+
             RemoteServiceManager.Instance.Start();
         }
-
-
-
 
         private void OnSystemSessionEnding(object sender, SessionEndingEventArgs e)
         {
@@ -243,11 +250,42 @@ namespace AzeuServices_V1
             monitor.Update();
             kboardStatusLabel.Text = monitor.IsKbAfk ? "Keyboard: AFK" : "Keyboard: Active";
             mouseStatusLabel.Text = monitor.IsMouseAfk ? "Mouse: AFK" : "Mouse: Active";
-            if (monitor.IsSuspicious) { suspiciousKeysLabel.Text = "Status: Suspicious"; suspiciousKeysLabel.ForeColor = Color.Red; }
-            else { suspiciousKeysLabel.Text = "Status: Normal"; suspiciousKeysLabel.ForeColor = Color.Black; }
+
+            if (monitor.IsSuspicious)
+            {
+                suspiciousKeysLabel.Text = "Status: Suspicious";
+                suspiciousKeysLabel.ForeColor = Color.Red;
+            }
+            else
+            {
+                suspiciousKeysLabel.Text = "Status: Normal";
+                suspiciousKeysLabel.ForeColor = Color.Black;
+            }
+
             CheckDesktopLimit();
             ManageCountdownLogic();
             UpdateSettingsStatus();
+
+            // --- NEW: REMOTE STATUS SYNC (EVERY SECOND) ---
+            if (lastSavedSettings.EnableRemoteService)
+            {
+                string countdownText;
+
+                if (!lastSavedSettings.ShutdownIfAFK)
+                {
+                    countdownText = "Turned OFF";
+                }
+                else
+                {
+                    // Convert currentSecondsLeft to MM:SS format
+                    int mins = currentSecondsLeft / 60;
+                    int secs = currentSecondsLeft % 60;
+                    countdownText = string.Format("{0:00}:{1:00}", mins, secs);
+                }
+
+                // Send to WebSocket Manager without blocking UI thread
+                _ = RemoteServiceManager.Instance.SendStatusUpdate(countdownText);
+            }
         }
 
         private void saveSettingsBtn_Click(object sender, EventArgs e)
@@ -669,41 +707,48 @@ namespace AzeuServices_V1
             settingStatusLabel.Text = hasChanges ? "Settings not saved" : "No changes";
             settingStatusLabel.ForeColor = hasChanges ? Color.OrangeRed : Color.Gray;
         }
-        private void PerformShutdown(string reason)
-        {
-            // 1. If a shutdown is already active or in cooldown, exit immediately.
-            if (isShutdownInProgress) return;
 
-            // 2. Lock the function
+        public void PerformShutdown(string reason)
+        {
+            if (isShutdownInProgress || isRestartInProgress) return;
             isShutdownInProgress = true;
 
             bool isAdministrative = adminShutdownCheckbox.Checked;
 
-            // 3. Show the Notification
-            // Note: MessageBox.Show is a blocking call. The code below it won't run until you click OK.
             MessageBox.Show(
-                $"SHUTDOWN TRIGGERED\n" +
+                $"SHUTDOWN TRIGGERED (DEBUG MODE)\n" +
                 $"Source: {reason}\n" +
                 $"Type: {(isAdministrative ? "Forced" : "Normal")}\n\n" +
-                $"Actual command is commented out for Debug Mode.",
+                $"System command is currently commented out for testing.",
                 "System Shutdown Notice",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning
             );
 
-            // 4. Actual Shutdown Command (Commented for Debugging)
-            /* 
-            ExecuteSilentCommand("shutdown", $"/s {(isAdministrative ? "/f" : "")} /t 0"); 
-            */
+            // ACTUAL COMMAND TO SHUTDOWN (COMMENTED FOR DEBUGGING)
+            // ExecuteSilentCommand("shutdown", $"/s {(isAdministrative ? "/f" : "")} /t 0"); 
 
-            // 5. Cooldown Logic:
-            // We wait 5 seconds before allowing the shutdown logic to trigger again.
-            // This gives the PC time to actually turn off, or gives you time to change settings during testing.
-            System.Threading.Tasks.Task.Delay(5000).ContinueWith(t =>
-            {
-                isShutdownInProgress = false;
-                //MessageBox.Show("Shutdown cooldown complete.");
-            });
+            Task.Delay(5000).ContinueWith(t => isShutdownInProgress = false);
+        }
+
+        public void PerformRestart(string reason)
+        {
+            if (isShutdownInProgress || isRestartInProgress) return;
+            isRestartInProgress = true;
+
+            MessageBox.Show(
+                $"RESTART TRIGGERED (DEBUG MODE)\n" +
+                $"Source: {reason}\n\n" +
+                $"System command is currently commented out for testing.",
+                "System Restart Notice",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            );
+
+            // ACTUAL COMMAND TO RESTART (COMMENTED FOR DEBUGGING)
+            // ExecuteSilentCommand("shutdown", "/r /f /t 0");
+
+            Task.Delay(5000).ContinueWith(t => isRestartInProgress = false);
         }
 
         private void ManageCountdownLogic()

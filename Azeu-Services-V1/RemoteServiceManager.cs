@@ -20,11 +20,15 @@ namespace AzeuServices_V1
 
         private ClientWebSocket _webSocket;
         private CancellationTokenSource _cts;
-        private AppSettings _activeSettings; // Store the settings currently in use
+        private AppSettings _activeSettings;
         private string _cachePath;
         private string _logPath;
 
         public event Action<string> OnStatusChanged;
+
+        // --- NEW: DELEGATES TO NOTIFY FORM1 ---
+        public Action<string> OnRequestShutdown;
+        public Action<string> OnRequestRestart;
 
         private RemoteServiceManager()
         {
@@ -33,17 +37,14 @@ namespace AzeuServices_V1
             if (!Directory.Exists(_cachePath)) Directory.CreateDirectory(_cachePath);
         }
 
-        // Updated Start to allow passing temporary test settings
         public void Start(AppSettings customSettings = null)
         {
             Stop();
-
-            // Use provided settings (for testing) or load from disk (for normal run)
             _activeSettings = customSettings ?? AppSettings.Load();
 
             if (!_activeSettings.EnableRemoteService || string.IsNullOrEmpty(_activeSettings.WebSocketUrl))
             {
-                WriteLog("Remote Service stopped: Disabled or URL empty.");
+                WriteLog("Remote Service stopped.");
                 return;
             }
 
@@ -69,38 +70,37 @@ namespace AzeuServices_V1
                     Uri serverUri = new Uri(_activeSettings.WebSocketUrl);
 
                     await _webSocket.ConnectAsync(serverUri, token);
-
                     OnStatusChanged?.Invoke("Connected");
                     WriteLog("Connected to server: " + _activeSettings.WebSocketUrl);
 
                     await SendIdentity();
+                    await Task.Delay(1000);
+                    await CaptureAndSendScreenshot();
+
                     await ReceiveMessages(token);
                 }
                 catch (Exception ex)
                 {
                     if (token.IsCancellationRequested) break;
-
                     OnStatusChanged?.Invoke("Disconnected");
                     WriteLog("Connection Error: " + ex.Message);
-
-                    await Task.Delay(30000, token);
+                    await Task.Delay(10000, token);
                 }
             }
         }
 
         private async Task SendIdentity()
         {
-            var identity = new
-            {
-                type = "IDENTITY",
-                pc_name = Environment.MachineName,
-                token = _activeSettings.WebSocketToken,
-                status = "Online"
-            };
+            var identity = new { type = "IDENTITY", pc_name = Environment.MachineName, token = _activeSettings.WebSocketToken, status = "Online" };
+            await SendString(JsonSerializer.Serialize(identity));
+            WriteLog("Identity handshake sent.");
+        }
 
-            string json = JsonSerializer.Serialize(identity);
-            await SendString(json);
-            WriteLog("Handshake sent to server.");
+        public async Task SendStatusUpdate(string countdownText)
+        {
+            if (_webSocket?.State != WebSocketState.Open) return;
+            var status = new { type = "STATUS_UPDATE", pc_name = Environment.MachineName, countdown = countdownText };
+            await SendString(JsonSerializer.Serialize(status));
         }
 
         private async Task ReceiveMessages(CancellationToken token)
@@ -110,7 +110,6 @@ namespace AzeuServices_V1
             {
                 var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
                 if (result.MessageType == WebSocketMessageType.Close) break;
-
                 string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 await HandleCommand(message);
             }
@@ -122,77 +121,56 @@ namespace AzeuServices_V1
             {
                 using JsonDocument doc = JsonDocument.Parse(json);
                 JsonElement root = doc.RootElement;
-
                 if (root.TryGetProperty("command", out JsonElement cmdElement))
                 {
                     string command = cmdElement.GetString().ToUpper();
                     WriteLog("Received Command: " + command);
-
                     switch (command)
                     {
-                        case "SCREENSHOT":
-                            await CaptureAndSendScreenshot();
-                            break;
-                        case "SHUTDOWN":
-                            WriteLog("Remote Shutdown triggered.");
-                            ExecutePowerCommand("shutdown", "/s /f /t 0");
-                            break;
-                        case "RESTART":
-                            WriteLog("Remote Restart triggered.");
-                            ExecutePowerCommand("shutdown", "/r /f /t 0");
-                            break;
-                        case "MESSAGE":
-                            if (root.TryGetProperty("content", out JsonElement msgElement))
-                            {
-                                ShowRemoteMessage(msgElement.GetString());
-                            }
-                            break;
+                        case "SCREENSHOT": await CaptureAndSendScreenshot(); break;
+
+                        // REDIRECTED TO FORM1 VIA ACTIONS
+                        case "SHUTDOWN": OnRequestShutdown?.Invoke("Remote Web Command"); break;
+                        case "RESTART": OnRequestRestart?.Invoke("Remote Web Command"); break;
+
+                        case "MESSAGE": if (root.TryGetProperty("content", out JsonElement msgElement)) ShowRemoteMessage(msgElement.GetString()); break;
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                WriteLog("Command Handling Error: " + ex.Message);
-            }
+            catch (Exception ex) { WriteLog("Command Handling Error: " + ex.Message); }
         }
 
-        private async Task CaptureAndSendScreenshot()
+        public async Task CaptureAndSendScreenshot()
         {
             try
             {
-                string fileName = $"shot_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
-                string fullPath = Path.Combine(_cachePath, fileName);
-
+                string fullPath = Path.Combine(_cachePath, "temp_shot.jpg");
                 Rectangle bounds = Screen.PrimaryScreen.Bounds;
                 using (Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height))
                 {
-                    using (Graphics g = Graphics.FromImage(bitmap))
-                    {
-                        g.CopyFromScreen(Point.Empty, Point.Empty, bounds.Size);
-                    }
-
+                    using (Graphics g = Graphics.FromImage(bitmap)) g.CopyFromScreen(Point.Empty, Point.Empty, bounds.Size);
                     using (Bitmap resized = new Bitmap(bitmap, new Size(1280, 720)))
                     {
                         ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
-                        EncoderParameters encoderParameters = new EncoderParameters(1);
-                        encoderParameters.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 60L);
-                        resized.Save(fullPath, jpgEncoder, encoderParameters);
+                        EncoderParameters ep = new EncoderParameters(1);
+                        ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 60L);
+                        resized.Save(fullPath, jpgEncoder, ep);
                     }
                 }
 
-                byte[] imageBytes = File.ReadAllBytes(fullPath);
-                string base64Image = Convert.ToBase64String(imageBytes);
+                string base64Image = Convert.ToBase64String(File.ReadAllBytes(fullPath));
 
                 var response = new
                 {
                     type = "SCREENSHOT_DATA",
                     pc_name = Environment.MachineName,
-                    image = "data:image/jpeg;base64," + base64Image
+                    image = "data:image/jpeg;base64," + base64Image,
+                    date = DateTime.Now.ToString("MMMM dd, yyyy"),
+                    time = DateTime.Now.ToString("hh:mm:ss tt")
                 };
 
                 await SendString(JsonSerializer.Serialize(response));
                 WriteLog("Screenshot sent.");
-
                 if (File.Exists(fullPath)) File.Delete(fullPath);
             }
             catch (Exception ex) { WriteLog("Screenshot Error: " + ex.Message); }
@@ -209,24 +187,13 @@ namespace AzeuServices_V1
                     }));
                 }
             });
-            WriteLog("Remote Message displayed: " + msg);
         }
 
         private async Task SendString(string data)
         {
-            if (_webSocket == null || _webSocket.State != WebSocketState.Open) return;
+            if (_webSocket?.State != WebSocketState.Open) return;
             var bytes = Encoding.UTF8.GetBytes(data);
             await _webSocket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-        }
-
-        private void ExecutePowerCommand(string cmd, string args)
-        {
-            ProcessStartInfo psi = new ProcessStartInfo(cmd, args)
-            {
-                CreateNoWindow = true,
-                UseShellExecute = false
-            };
-            Process.Start(psi);
         }
 
         public void WriteLog(string message)
@@ -234,27 +201,20 @@ namespace AzeuServices_V1
             try
             {
                 string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
-
                 FileInfo fi = new FileInfo(_logPath);
                 if (fi.Exists && fi.Length > 2 * 1024 * 1024)
                 {
                     string[] lines = File.ReadAllLines(_logPath);
-                    var remainingLines = lines.Skip(lines.Length / 2);
-                    File.WriteAllLines(_logPath, remainingLines);
+                    File.WriteAllLines(_logPath, lines.Skip(lines.Length / 2));
                 }
-
                 File.AppendAllText(_logPath, logEntry);
-                Debug.WriteLine("WS_LOG: " + message);
             }
             catch { }
         }
 
         private ImageCodecInfo GetEncoder(ImageFormat format)
         {
-            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
-            foreach (ImageCodecInfo codec in codecs)
-                if (codec.FormatID == format.Guid) return codec;
-            return null;
+            return ImageCodecInfo.GetImageDecoders().FirstOrDefault(x => x.FormatID == format.Guid);
         }
     }
 }
