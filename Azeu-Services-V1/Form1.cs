@@ -42,7 +42,7 @@ namespace AzeuServices_V1
 
         private bool isShutdownInProgress = false;
         private bool isRestartInProgress = false;
-        private AfkWarningForm? activeAfkWarning = null;
+        public AfkWarningForm? activeAfkWarning = null;
 
 
         public Form1()
