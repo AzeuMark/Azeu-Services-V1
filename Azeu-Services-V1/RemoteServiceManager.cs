@@ -121,23 +121,42 @@ namespace AzeuServices_V1
             {
                 using JsonDocument doc = JsonDocument.Parse(json);
                 JsonElement root = doc.RootElement;
+
+                // Ensure we are looking for the "command" property
                 if (root.TryGetProperty("command", out JsonElement cmdElement))
                 {
                     string command = cmdElement.GetString().ToUpper();
                     WriteLog("Received Command: " + command);
+
                     switch (command)
                     {
-                        case "SCREENSHOT": await CaptureAndSendScreenshot(); break;
-
-                        // REDIRECTED TO FORM1 VIA ACTIONS
-                        case "SHUTDOWN": OnRequestShutdown?.Invoke("Remote Web Command"); break;
-                        case "RESTART": OnRequestRestart?.Invoke("Remote Web Command"); break;
-
-                        case "MESSAGE": if (root.TryGetProperty("content", out JsonElement msgElement)) ShowRemoteMessage(msgElement.GetString()); break;
+                        case "SCREENSHOT":
+                            await CaptureAndSendScreenshot();
+                            break;
+                        case "SHUTDOWN":
+                            OnRequestShutdown?.Invoke("Remote Web Command");
+                            break;
+                        case "RESTART":
+                            OnRequestRestart?.Invoke("Remote Web Command");
+                            break;
+                        case "MESSAGE":
+                            // FIX: Ensure 'content' property exists and has text before showing popup
+                            if (root.TryGetProperty("content", out JsonElement msgElement))
+                            {
+                                string messageText = msgElement.GetString();
+                                if (!string.IsNullOrEmpty(messageText))
+                                {
+                                    ShowRemoteMessage(messageText);
+                                }
+                            }
+                            break;
                     }
                 }
             }
-            catch (Exception ex) { WriteLog("Command Handling Error: " + ex.Message); }
+            catch (Exception ex)
+            {
+                WriteLog("Command Handling Error: " + ex.Message);
+            }
         }
 
         public async Task CaptureAndSendScreenshot()
@@ -178,15 +197,22 @@ namespace AzeuServices_V1
 
         private void ShowRemoteMessage(string msg)
         {
+            // Use BeginInvoke on an existing form to ensure Thread Safety
+            // This allows multiple messages to spawn without blocking the socket
             Task.Run(() => {
                 if (Application.OpenForms.Count > 0)
                 {
-                    Application.OpenForms[0].Invoke(new Action(() => {
-                        RemoteMessageForm popup = new RemoteMessageForm(msg);
-                        popup.Show();
-                    }));
+                    var targetForm = Application.OpenForms[0];
+                    if (targetForm.IsHandleCreated)
+                    {
+                        targetForm.BeginInvoke(new Action(() => {
+                            RemoteMessageForm popup = new RemoteMessageForm(msg);
+                            popup.Show();
+                        }));
+                    }
                 }
             });
+            WriteLog("Remote Message processed: " + msg);
         }
 
         private async Task SendString(string data)
