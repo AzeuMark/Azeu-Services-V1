@@ -77,6 +77,8 @@ namespace AzeuServices_V1
         public string LimitReturningTextColor { get; set; } = "White";
         public int LimitReturningBottomMargin { get; set; } = 20;
 
+        public bool LimitShowShutdownCountdown { get; set; } = true;
+
         [System.Text.Json.Serialization.JsonIgnore]
         public DateTime? LastBypassDate { get; set; } = null;
         private static string FilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");

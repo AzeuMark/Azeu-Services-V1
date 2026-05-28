@@ -662,6 +662,7 @@ namespace AzeuServices_V1
             System.Threading.Tasks.Task.Delay(5000).ContinueWith(t =>
             {
                 isShutdownInProgress = false;
+                //MessageBox.Show("Shutdown cooldown complete.");
             });
         }
 

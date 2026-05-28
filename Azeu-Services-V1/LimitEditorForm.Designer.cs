@@ -22,10 +22,10 @@
             lblPreviewReturning = new Label();
             lblPreviewBypass = new Label();
             lblPreviewMsg = new Label();
+            lblPreviewShutdown = new Label();
             grpReturning = new GroupBox();
             txtRetMargin = new TextBox();
             label9 = new Label();
-            chkShowReturning = new CheckBox();
             cmbRetFontFamily = new ComboBox();
             txtRetFontSize = new TextBox();
             cmbRetTextColor = new ComboBox();
@@ -33,7 +33,9 @@
             label7 = new Label();
             label8 = new Label();
             grpMessage = new GroupBox();
+            chkShowShutdownCountdown = new CheckBox();
             chkShowBypass = new CheckBox();
+            chkShowReturning = new CheckBox();
             txtMessage = new TextBox();
             cmbFontFamily = new ComboBox();
             txtFontSize = new TextBox();
@@ -86,7 +88,7 @@
             splitContainer1.Panel2.Controls.Add(btnCancel);
             splitContainer1.Panel2.Controls.Add(grpImage);
             splitContainer1.Panel2.Padding = new Padding(15);
-            splitContainer1.Size = new Size(1063, 630);
+            splitContainer1.Size = new Size(1063, 421);
             splitContainer1.SplitterDistance = 723;
             splitContainer1.TabIndex = 0;
             // 
@@ -97,6 +99,7 @@
             pnlPreview.Controls.Add(lblPreviewReturning);
             pnlPreview.Controls.Add(lblPreviewBypass);
             pnlPreview.Controls.Add(lblPreviewMsg);
+            pnlPreview.Controls.Add(lblPreviewShutdown);
             pnlPreview.Location = new Point(12, 10);
             pnlPreview.Name = "pnlPreview";
             pnlPreview.Size = new Size(700, 400);
@@ -105,9 +108,8 @@
             // lblPreviewReturning
             // 
             lblPreviewReturning.BackColor = Color.Transparent;
-            lblPreviewReturning.Dock = DockStyle.Bottom;
             lblPreviewReturning.ForeColor = Color.White;
-            lblPreviewReturning.Location = new Point(0, 323);
+            lblPreviewReturning.Location = new Point(0, 310);
             lblPreviewReturning.Name = "lblPreviewReturning";
             lblPreviewReturning.Size = new Size(698, 44);
             lblPreviewReturning.TabIndex = 3;
@@ -117,9 +119,8 @@
             // lblPreviewBypass
             // 
             lblPreviewBypass.BackColor = Color.Transparent;
-            lblPreviewBypass.Dock = DockStyle.Bottom;
             lblPreviewBypass.ForeColor = Color.White;
-            lblPreviewBypass.Location = new Point(0, 367);
+            lblPreviewBypass.Location = new Point(0, 355);
             lblPreviewBypass.Name = "lblPreviewBypass";
             lblPreviewBypass.Size = new Size(698, 31);
             lblPreviewBypass.TabIndex = 2;
@@ -129,7 +130,6 @@
             // lblPreviewMsg
             // 
             lblPreviewMsg.BackColor = Color.Transparent;
-            lblPreviewMsg.Dock = DockStyle.Top;
             lblPreviewMsg.ForeColor = Color.White;
             lblPreviewMsg.Location = new Point(0, 0);
             lblPreviewMsg.Name = "lblPreviewMsg";
@@ -138,11 +138,21 @@
             lblPreviewMsg.Text = "PISONET IS NOW CLOSED";
             lblPreviewMsg.TextAlign = ContentAlignment.MiddleCenter;
             // 
+            // lblPreviewShutdown
+            // 
+            lblPreviewShutdown.BackColor = Color.Transparent;
+            lblPreviewShutdown.ForeColor = Color.LightGray;
+            lblPreviewShutdown.Location = new Point(0, 270);
+            lblPreviewShutdown.Name = "lblPreviewShutdown";
+            lblPreviewShutdown.Size = new Size(698, 35);
+            lblPreviewShutdown.TabIndex = 4;
+            lblPreviewShutdown.Text = "This computer will shutdown in 180 seconds.";
+            lblPreviewShutdown.TextAlign = ContentAlignment.MiddleCenter;
+            // 
             // grpReturning
             // 
             grpReturning.Controls.Add(txtRetMargin);
             grpReturning.Controls.Add(label9);
-            grpReturning.Controls.Add(chkShowReturning);
             grpReturning.Controls.Add(cmbRetFontFamily);
             grpReturning.Controls.Add(txtRetFontSize);
             grpReturning.Controls.Add(cmbRetTextColor);
@@ -150,7 +160,7 @@
             grpReturning.Controls.Add(label7);
             grpReturning.Controls.Add(label8);
             grpReturning.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            grpReturning.Location = new Point(10, 262);
+            grpReturning.Location = new Point(10, 281);
             grpReturning.Name = "grpReturning";
             grpReturning.Size = new Size(300, 166);
             grpReturning.TabIndex = 1;
@@ -173,16 +183,6 @@
             label9.Size = new Size(130, 15);
             label9.TabIndex = 8;
             label9.Text = "Bottom Margin:";
-            // 
-            // chkShowReturning
-            // 
-            chkShowReturning.AutoSize = true;
-            chkShowReturning.Location = new Point(10, 125);
-            chkShowReturning.Name = "chkShowReturning";
-            chkShowReturning.Size = new Size(147, 19);
-            chkShowReturning.TabIndex = 7;
-            chkShowReturning.Text = "Show Returning Time";
-            chkShowReturning.UseVisualStyleBackColor = true;
             // 
             // cmbRetFontFamily
             // 
@@ -239,7 +239,9 @@
             // 
             // grpMessage
             // 
+            grpMessage.Controls.Add(chkShowShutdownCountdown);
             grpMessage.Controls.Add(chkShowBypass);
+            grpMessage.Controls.Add(chkShowReturning);
             grpMessage.Controls.Add(txtMessage);
             grpMessage.Controls.Add(cmbFontFamily);
             grpMessage.Controls.Add(txtFontSize);
@@ -253,20 +255,40 @@
             grpMessage.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             grpMessage.Location = new Point(10, 10);
             grpMessage.Name = "grpMessage";
-            grpMessage.Size = new Size(300, 246);
+            grpMessage.Size = new Size(300, 268);
             grpMessage.TabIndex = 0;
             grpMessage.TabStop = false;
             grpMessage.Text = "1. Main Lock Message Styles";
             // 
+            // chkShowShutdownCountdown
+            // 
+            chkShowShutdownCountdown.AutoSize = true;
+            chkShowShutdownCountdown.Location = new Point(10, 225);
+            chkShowShutdownCountdown.Name = "chkShowShutdownCountdown";
+            chkShowShutdownCountdown.Size = new Size(216, 19);
+            chkShowShutdownCountdown.TabIndex = 11;
+            chkShowShutdownCountdown.Text = "Show Shutdown Countdown Label";
+            chkShowShutdownCountdown.UseVisualStyleBackColor = true;
+            // 
             // chkShowBypass
             // 
             chkShowBypass.AutoSize = true;
-            chkShowBypass.Location = new Point(10, 212);
+            chkShowBypass.Location = new Point(10, 208);
             chkShowBypass.Name = "chkShowBypass";
             chkShowBypass.Size = new Size(201, 19);
             chkShowBypass.TabIndex = 10;
             chkShowBypass.Text = "Show Bypass Instructions (Hint)";
             chkShowBypass.UseVisualStyleBackColor = true;
+            // 
+            // chkShowReturning
+            // 
+            chkShowReturning.AutoSize = true;
+            chkShowReturning.Location = new Point(10, 243);
+            chkShowReturning.Name = "chkShowReturning";
+            chkShowReturning.Size = new Size(147, 19);
+            chkShowReturning.TabIndex = 7;
+            chkShowReturning.Text = "Show Returning Time";
+            chkShowReturning.UseVisualStyleBackColor = true;
             // 
             // txtMessage
             // 
@@ -359,7 +381,7 @@
             // 
             // btnFullScreen
             // 
-            btnFullScreen.Location = new Point(10, 550);
+            btnFullScreen.Location = new Point(10, 566);
             btnFullScreen.Name = "btnFullScreen";
             btnFullScreen.Size = new Size(300, 30);
             btnFullScreen.TabIndex = 4;
@@ -370,7 +392,7 @@
             btnSave.BackColor = Color.Green;
             btnSave.FlatStyle = FlatStyle.Flat;
             btnSave.ForeColor = Color.White;
-            btnSave.Location = new Point(10, 586);
+            btnSave.Location = new Point(10, 601);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(145, 30);
             btnSave.TabIndex = 5;
@@ -382,7 +404,7 @@
             btnCancel.BackColor = Color.Gray;
             btnCancel.FlatStyle = FlatStyle.Flat;
             btnCancel.ForeColor = Color.White;
-            btnCancel.Location = new Point(165, 586);
+            btnCancel.Location = new Point(165, 601);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(145, 30);
             btnCancel.TabIndex = 6;
@@ -396,7 +418,7 @@
             grpImage.Controls.Add(label15);
             grpImage.Controls.Add(btnSelectImage);
             grpImage.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            grpImage.Location = new Point(10, 434);
+            grpImage.Location = new Point(10, 451);
             grpImage.Name = "grpImage";
             grpImage.Size = new Size(300, 110);
             grpImage.TabIndex = 2;
@@ -444,7 +466,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1063, 630);
+            ClientSize = new Size(1063, 421);
             Controls.Add(splitContainer1);
             MinimumSize = new Size(1000, 400);
             Name = "LimitEditorForm";
@@ -471,8 +493,10 @@
         private Label lblPreviewMsg;
         private Label lblPreviewReturning;
         private Label lblPreviewBypass;
+        private Label lblPreviewShutdown;
         private GroupBox grpMessage;
         private CheckBox chkShowBypass;
+        private CheckBox chkShowShutdownCountdown;
         private TextBox txtMessage;
         private ComboBox cmbFontFamily;
         private TextBox txtFontSize;
