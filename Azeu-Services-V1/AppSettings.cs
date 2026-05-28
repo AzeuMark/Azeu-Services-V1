@@ -27,6 +27,11 @@ namespace AzeuServices_V1
         public bool IsAppRunningState { get; set; } = false;
         public bool StartInTray { get; set; } = false;
 
+        // Remote Service Settings
+        public bool EnableRemoteService { get; set; } = false;
+        public string WebSocketUrl { get; set; } = "";
+        public string WebSocketToken { get; set; } = "azeu_websocket_token";
+
         // No Smoking Settings
         public bool EnableNoSmoking { get; set; } = false;
         public string NoSmokingMessage { get; set; } = "NO SMOKING INSIDE THE PISONET";
@@ -46,7 +51,7 @@ namespace AzeuServices_V1
         public string NoSmokingImagePath { get; set; } = "";
         public string NoSmokingImageSizeMode { get; set; } = "Stretch";
 
-        // Desktop Curfew (Limit) Schedule Settings
+        // Desktop Curfew Settings
         public bool LimitDesktopUsage { get; set; } = false;
         public string LimitDesktopHour { get; set; } = "12";
         public string LimitDesktopMin { get; set; } = "00";
@@ -62,7 +67,6 @@ namespace AzeuServices_V1
         public bool LimitShow30min { get; set; } = false;
         public bool LimitShutdownAfter3Min { get; set; } = false;
 
-        // --- Curfew Styling Settings (MAIN MESSAGE) ---
         public string LimitMessage { get; set; } = "PISONET IS NOW CLOSED";
         public string LimitFontFamily { get; set; } = "Arial";
         public int LimitFontSize { get; set; } = 48;
@@ -70,13 +74,11 @@ namespace AzeuServices_V1
         public string LimitTextColor { get; set; } = "White";
         public bool LimitShowBypassInstructions { get; set; } = false;
 
-        // --- NEW: Curfew Returning Time Styles ---
         public bool LimitShowReturningTime { get; set; } = true;
         public string LimitReturningFontFamily { get; set; } = "Arial";
         public int LimitReturningFontSize { get; set; } = 24;
         public string LimitReturningTextColor { get; set; } = "White";
         public int LimitReturningBottomMargin { get; set; } = 20;
-
         public bool LimitShowShutdownCountdown { get; set; } = true;
 
         [System.Text.Json.Serialization.JsonIgnore]

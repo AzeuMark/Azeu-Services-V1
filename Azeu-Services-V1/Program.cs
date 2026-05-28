@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -7,7 +8,6 @@ namespace AzeuServices_V1
 {
     internal static class Program
     {
-        // Import to find the hidden window by its name
         [DllImport("user32.dll", SetLastError = true)]
         static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
@@ -17,7 +17,6 @@ namespace AzeuServices_V1
         [DllImport("user32.dll")]
         private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
-        // Unique string to identify our custom message
         public const string MessageName = "AzeuServices_RequestOpenSettings";
 
         [STAThread]
@@ -25,24 +24,17 @@ namespace AzeuServices_V1
         {
             ApplicationConfiguration.Initialize();
 
-            // 1. Try to find the window of the already running instance
-            // We use the "Text" property of Form1 defined in your Designer ("Azeu Services V1")
-            IntPtr existingWindowHandle = FindWindow(null, "Azeu Services V1");
+            // 1. Cleanup Websocket Cache on Startup
+            CleanupWebsocketCache();
 
+            IntPtr existingWindowHandle = FindWindow(null, "Azeu Services V1");
             if (existingWindowHandle != IntPtr.Zero)
             {
-                // 2. An instance is already running.
-                // Register the same message ID as the first instance.
                 uint msg = RegisterWindowMessage(MessageName);
-
-                // 3. Send the message specifically to the existing window.
                 PostMessage(existingWindowHandle, msg, IntPtr.Zero, IntPtr.Zero);
-
-                // 4. Close this instance.
                 return;
             }
 
-            // 5. No instance found, proceed with normal startup.
             AppSettings settings = AppSettings.Load();
 
             if (settings.EnableNoSmoking)
@@ -56,6 +48,23 @@ namespace AzeuServices_V1
             }
 
             Application.Run(new Form1());
+        }
+
+        private static void CleanupWebsocketCache()
+        {
+            try
+            {
+                string cachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "websocket-cache");
+                if (Directory.Exists(cachePath))
+                {
+                    Directory.Delete(cachePath, true);
+                }
+                Directory.CreateDirectory(cachePath);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Cache Cleanup Error: " + ex.Message);
+            }
         }
     }
 }

@@ -55,6 +55,7 @@
             limitDesktopShowDialog30minCheckbox = new CheckBox();
             limitDesktopShutdownAfter3Minutes = new CheckBox();
             viewLimitDesktopActionDialogBtn = new Button();
+            btnRemoteSettings = new Button();
             SuspendLayout();
             // 
             // shutdownAFKCheckbox
@@ -367,7 +368,7 @@
             limitDesktopActionComboBox.Name = "limitDesktopActionComboBox";
             limitDesktopActionComboBox.Size = new Size(150, 23);
             limitDesktopActionComboBox.TabIndex = 7;
-            this.limitDesktopActionComboBox.SelectedIndexChanged += new System.EventHandler(this.OnUIStateChanged);
+            limitDesktopActionComboBox.SelectedIndexChanged += OnUIStateChanged;
             // 
             // limitDesktopImagePathTexbox
             // 
@@ -436,11 +437,22 @@
             viewLimitDesktopActionDialogBtn.UseVisualStyleBackColor = true;
             viewLimitDesktopActionDialogBtn.Click += viewLimitDesktopActionDialogBtn_Click;
             // 
+            // btnRemoteSettings
+            // 
+            btnRemoteSettings.Location = new Point(380, 369);
+            btnRemoteSettings.Name = "btnRemoteSettings";
+            btnRemoteSettings.Size = new Size(111, 23);
+            btnRemoteSettings.TabIndex = 40;
+            btnRemoteSettings.Text = "Remote Service";
+            btnRemoteSettings.UseVisualStyleBackColor = true;
+            btnRemoteSettings.Click += btnRemoteSettings_Click;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(880, 650);
+            Controls.Add(btnRemoteSettings);
             Controls.Add(viewLimitDesktopActionDialogBtn);
             Controls.Add(limitDesktopShutdownAfter3Minutes);
             Controls.Add(limitDesktopShowDialog30minCheckbox);
@@ -527,5 +539,6 @@
         private CheckBox limitDesktopShowDialog30minCheckbox;
         private CheckBox limitDesktopShutdownAfter3Minutes;
         private Button viewLimitDesktopActionDialogBtn;
+        private Button btnRemoteSettings;
     }
 }

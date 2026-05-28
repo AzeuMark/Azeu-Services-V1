@@ -48,11 +48,7 @@ namespace AzeuServices_V1
             this.ShowInTaskbar = false;
             InitializeComponent();
 
-            // Register the custom message handler
             _openRequestMsg = RegisterWindowMessage(Program.MessageName);
-
-            // CRITICAL: This forces Windows to assign a handle to the form immediately 
-            // so FindWindow can find it even while hidden.
             var forceHandle = this.Handle;
 
             SystemEvents.SessionEnding += OnSystemSessionEnding;
@@ -64,7 +60,11 @@ namespace AzeuServices_V1
 
             LoadConfig();
             uiTimer.Start();
+
+            // START REMOTE SERVICE BACKGROUND MANAGER
+            RemoteServiceManager.Instance.Start();
         }
+
 
 
 
@@ -667,86 +667,86 @@ namespace AzeuServices_V1
         }
 
         private void ManageCountdownLogic()
-{
-    // If the settings window is currently visible, we hide the HUD to avoid overlap.
-    // Otherwise, we follow the current UI checkbox states.
-    if (this.Visible || !showCountdownCheckbox.Checked || isWidgetManuallyHidden || !shutdownAFKCheckbox.Checked)
-    {
-        if (countdownWindow != null) 
-        { 
-            countdownWindow.AllowClose = true; 
-            countdownWindow.Close(); 
-            countdownWindow = null; 
-        }
-        isCountingDown = false; 
-        return;
-    }
-
-    // Create the HUD if it is enabled and doesn't exist
-    if (countdownWindow == null || countdownWindow.IsDisposed)
-    {
-        countdownWindow = new CountdownForm();
-        countdownWindow.PositionBottomRight();
-        countdownWindow.OnRequestOpen = () => TryOpenFromTray();
-        countdownWindow.OnRequestToggle = () => ToggleWidgetManual();
-        countdownWindow.OnRequestExit = () => TryExitApp();
-        
-        // Apply properties from the current UI controls
-        countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
-
-        if (countdownOpacityCheckbox.Checked)
         {
-            if (int.TryParse(countdownOpacityTextbox.Text, out int op))
-                countdownWindow.ApplyOpacity(op);
-        }
-        else
-        {
-            countdownWindow.ApplyOpacity(100);
-        }
+            // If the settings window is currently visible, we hide the HUD to avoid overlap.
+            // Otherwise, we follow the current UI checkbox states.
+            if (this.Visible || !showCountdownCheckbox.Checked || isWidgetManuallyHidden || !shutdownAFKCheckbox.Checked)
+            {
+                if (countdownWindow != null)
+                {
+                    countdownWindow.AllowClose = true;
+                    countdownWindow.Close();
+                    countdownWindow = null;
+                }
+                isCountingDown = false;
+                return;
+            }
 
-        countdownWindow.Show();
-    }
+            // Create the HUD if it is enabled and doesn't exist
+            if (countdownWindow == null || countdownWindow.IsDisposed)
+            {
+                countdownWindow = new CountdownForm();
+                countdownWindow.PositionBottomRight();
+                countdownWindow.OnRequestOpen = () => TryOpenFromTray();
+                countdownWindow.OnRequestToggle = () => ToggleWidgetManual();
+                countdownWindow.OnRequestExit = () => TryExitApp();
 
-    // Logic for triggering the Auto Shutdown sequence
-    bool isTriggered = (monitor.IsKbAfk && monitor.IsMouseAfk) || 
-                       (monitor.IsKbSuspicious && monitor.IsMouseAfk) || 
-                       (monitor.IsMouseClickSuspicious && monitor.IsKbAfk);
+                // Apply properties from the current UI controls
+                countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
 
-    if (isTriggered)
-    {
-        isCountingDown = true;
-        countdownWindow.SetAlertMode(true);
-        currentSecondsLeft--;
-        
-        // Final shutdown execution
-        if (currentSecondsLeft <= 0 && startupGraceSeconds <= 0) 
-        {
-            PerformShutdown("AFK Detection");
+                if (countdownOpacityCheckbox.Checked)
+                {
+                    if (int.TryParse(countdownOpacityTextbox.Text, out int op))
+                        countdownWindow.ApplyOpacity(op);
+                }
+                else
+                {
+                    countdownWindow.ApplyOpacity(100);
+                }
+
+                countdownWindow.Show();
+            }
+
+            // Logic for triggering the Auto Shutdown sequence
+            bool isTriggered = (monitor.IsKbAfk && monitor.IsMouseAfk) ||
+                               (monitor.IsKbSuspicious && monitor.IsMouseAfk) ||
+                               (monitor.IsMouseClickSuspicious && monitor.IsKbAfk);
+
+            if (isTriggered)
+            {
+                isCountingDown = true;
+                countdownWindow.SetAlertMode(true);
+                currentSecondsLeft--;
+
+                // Final shutdown execution
+                if (currentSecondsLeft <= 0 && startupGraceSeconds <= 0)
+                {
+                    PerformShutdown("AFK Detection");
+                }
+            }
+            else
+            {
+                isCountingDown = false;
+                // Revert timer to the duration set in the textbox
+                if (int.TryParse(countdownTextbox.Text, out int minutes))
+                {
+                    currentSecondsLeft = minutes * 60;
+                }
+                else
+                {
+                    currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60;
+                }
+
+                countdownWindow.SetAlertMode(false);
+            }
+
+            if (startupGraceSeconds > 0) startupGraceSeconds--;
+
+            if (countdownWindow != null)
+            {
+                countdownWindow.UpdateTime(currentSecondsLeft);
+            }
         }
-    }
-    else
-    {
-        isCountingDown = false;
-        // Revert timer to the duration set in the textbox
-        if (int.TryParse(countdownTextbox.Text, out int minutes))
-        {
-            currentSecondsLeft = minutes * 60;
-        }
-        else
-        {
-            currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60;
-        }
-        
-        countdownWindow.SetAlertMode(false);
-    }
-
-    if (startupGraceSeconds > 0) startupGraceSeconds--;
-
-    if (countdownWindow != null)
-    {
-        countdownWindow.UpdateTime(currentSecondsLeft);
-    }
-}
 
         protected override void WndProc(ref Message m)
         {
@@ -754,7 +754,8 @@ namespace AzeuServices_V1
             if (m.Msg == _openRequestMsg && _openRequestMsg != 0)
             {
                 // We use BeginInvoke to ensure the UI thread is ready to show the dialog
-                this.BeginInvoke(new Action(() => {
+                this.BeginInvoke(new Action(() =>
+                {
                     TryOpenFromTray();
                 }));
             }
@@ -1003,6 +1004,14 @@ Loop";
             }
 
             UpdateSettingsStatus();
+        }
+
+        private void btnRemoteSettings_Click(object sender, EventArgs e)
+        {
+            using (RemoteServiceForm rsForm = new RemoteServiceForm())
+            {
+                rsForm.ShowDialog();
+            }
         }
     }
 }
