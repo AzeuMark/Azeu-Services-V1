@@ -7,33 +7,52 @@ namespace AzeuServices_V1
 {
     public partial class RemoteServiceForm : Form
     {
-        private AppSettings _settings;
+        private AppSettings _lastSavedSettings;
         private System.Windows.Forms.Timer logUpdateTimer;
+
+        private bool _isLogPaused = false;
+        private bool _isWaitingForTest = false;
+        private bool _testSuccess = false; // Tracks if the current connection is a successful test
+        private bool _isDirty = false;    // Tracks if UI values match settings.json
 
         public RemoteServiceForm()
         {
             InitializeComponent();
-            _settings = AppSettings.Load();
+            _lastSavedSettings = AppSettings.Load();
             LoadFields();
 
-            // Setup real-time log viewer
             logUpdateTimer = new System.Windows.Forms.Timer { Interval = 2000 };
-            logUpdateTimer.Tick += (s, e) => LoadLogs();
+            logUpdateTimer.Tick += (s, e) => {
+                if (!_isLogPaused) LoadLogs();
+            };
             logUpdateTimer.Start();
 
-            // Listen for status changes from the manager
             RemoteServiceManager.Instance.OnStatusChanged += (status) => {
                 if (this.IsHandleCreated)
                 {
-                    this.Invoke(new Action(() => lblStatus.Text = "Status: " + status));
+                    this.Invoke(new Action(() => {
+                        lblStatus.Text = "Status: " + status;
+
+                        if (_isWaitingForTest && status == "Connected")
+                        {
+                            _isWaitingForTest = false;
+                            _testSuccess = true; // Mark as successful test
+                            MessageBox.Show("Connection test successful! Current credentials work.", "Remote Service", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                    }));
                 }
             };
+
+            // Wire up text change detection
+            txtUrl.TextChanged += (s, e) => { _isDirty = true; _testSuccess = false; };
+            txtToken.TextChanged += (s, e) => { _isDirty = true; _testSuccess = false; };
         }
 
         private void LoadFields()
         {
-            txtUrl.Text = _settings.WebSocketUrl;
-            txtToken.Text = _settings.WebSocketToken;
+            txtUrl.Text = _lastSavedSettings.WebSocketUrl;
+            txtToken.Text = _lastSavedSettings.WebSocketToken;
+            _isDirty = false;
             LoadLogs();
         }
 
@@ -62,28 +81,81 @@ namespace AzeuServices_V1
                 return;
             }
 
-            // Save to settings object
-            _settings.WebSocketUrl = txtUrl.Text;
-            _settings.WebSocketToken = txtToken.Text;
+            // Update the settings object
+            _lastSavedSettings.WebSocketUrl = txtUrl.Text;
+            _lastSavedSettings.WebSocketToken = txtToken.Text;
 
-            AppSettings.Save(_settings);
+            // Persistent Save to Disk
+            AppSettings.Save(_lastSavedSettings);
 
-            // Apply changes to the background service immediately
-            RemoteServiceManager.Instance.Start();
+            _isDirty = false;
+            _testSuccess = false;
 
-            MessageBox.Show("Remote credentials saved. If the service is enabled in the main menu, it is now active.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            // Ensure background service is running with new saved values
+            RemoteServiceManager.Instance.Start(_lastSavedSettings);
+
+            MessageBox.Show("Credentials saved to settings.json.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void btnTest_Click(object sender, EventArgs e)
         {
-            // Temporarily use values from textboxes to test connection without a full save
-            _settings.WebSocketUrl = txtUrl.Text;
-            _settings.WebSocketToken = txtToken.Text;
-            RemoteServiceManager.Instance.Start();
+            if (string.IsNullOrWhiteSpace(txtUrl.Text)) { MessageBox.Show("Please enter a WebSocket URL."); return; }
+
+            _isLogPaused = false;
+            txtLogs.Clear();
+            RemoteServiceManager.Instance.WriteLog("--- Manual Connection Test Started (Unsaved) ---");
+
+            _isWaitingForTest = true;
+            _testSuccess = false;
+
+            // CRITICAL: Create a temporary settings object for testing
+            // This does NOT call AppSettings.Save()
+            var tempSettings = new AppSettings
+            {
+                EnableRemoteService = true, // Force enable for test
+                WebSocketUrl = txtUrl.Text,
+                WebSocketToken = txtToken.Text
+            };
+
+            // Pass the temporary settings to the manager
+            RemoteServiceManager.Instance.Start(tempSettings);
+        }
+
+        private void btnClearView_Click(object sender, EventArgs e)
+        {
+            txtLogs.Clear();
+            _isLogPaused = true;
+            RemoteServiceManager.Instance.WriteLog("Log view cleared by user.");
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            // If UI values don't match disk, or we have a successful unsaved test connection running
+            if (_isDirty || _testSuccess)
+            {
+                DialogResult result = MessageBox.Show(
+                    "You have unsaved remote credentials. Save changes before closing?",
+                    "Unsaved Changes",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    btnSave_Click(this, EventArgs.Empty);
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                else
+                {
+                    // User clicked NO. 
+                    // Revert the background service to whatever is actually saved in settings.json
+                    RemoteServiceManager.Instance.Start(AppSettings.Load());
+                }
+            }
+
             if (logUpdateTimer != null)
             {
                 logUpdateTimer.Stop();
@@ -92,7 +164,7 @@ namespace AzeuServices_V1
             base.OnFormClosing(e);
         }
 
-        // --- DESIGNER COMPONENTS (NO CHECKBOX) ---
+        // --- DESIGNER COMPONENTS ---
         private System.ComponentModel.IContainer components = null;
         private TextBox txtUrl;
         private TextBox txtToken;
@@ -100,6 +172,7 @@ namespace AzeuServices_V1
         private RichTextBox txtLogs;
         private Button btnSave;
         private Button btnTest;
+        private Button btnClearView;
         private Label label1;
         private Label label2;
 
@@ -117,13 +190,14 @@ namespace AzeuServices_V1
             this.txtLogs = new RichTextBox();
             this.btnSave = new Button();
             this.btnTest = new Button();
+            this.btnClearView = new Button();
             this.label1 = new Label();
             this.label2 = new Label();
             this.SuspendLayout();
             // 
             // label1
             // 
-            this.label1.Text = "WebSocket URL (e.g. ws://192.168.1.20:3000):";
+            this.label1.Text = "WebSocket URL:";
             this.label1.Location = new Point(20, 20);
             this.label1.AutoSize = true;
             // 
@@ -134,7 +208,7 @@ namespace AzeuServices_V1
             // 
             // label2
             // 
-            this.label2.Text = "Security Token (Min 10 chars):";
+            this.label2.Text = "Security Token:";
             this.label2.Location = new Point(20, 75);
             this.label2.AutoSize = true;
             // 
@@ -153,18 +227,18 @@ namespace AzeuServices_V1
             // txtLogs
             // 
             this.txtLogs.Location = new Point(20, 160);
-            this.txtLogs.Size = new Size(340, 185);
+            this.txtLogs.Size = new Size(340, 155);
             this.txtLogs.ReadOnly = true;
             this.txtLogs.BackColor = Color.Black;
             this.txtLogs.ForeColor = Color.Lime;
             this.txtLogs.Font = new Font("Consolas", 8F);
             // 
-            // btnSave
+            // btnClearView
             // 
-            this.btnSave.Text = "Save Credentials";
-            this.btnSave.Location = new Point(240, 360);
-            this.btnSave.Width = 120;
-            this.btnSave.Click += new EventHandler(btnSave_Click);
+            this.btnClearView.Text = "Clear Log View";
+            this.btnClearView.Location = new Point(20, 320);
+            this.btnClearView.Width = 340;
+            this.btnClearView.Click += new EventHandler(btnClearView_Click);
             // 
             // btnTest
             // 
@@ -173,13 +247,20 @@ namespace AzeuServices_V1
             this.btnTest.Width = 120;
             this.btnTest.Click += new EventHandler(btnTest_Click);
             // 
+            // btnSave
+            // 
+            this.btnSave.Text = "Save Credentials";
+            this.btnSave.Location = new Point(240, 360);
+            this.btnSave.Width = 120;
+            this.btnSave.Click += new EventHandler(btnSave_Click);
+            // 
             // RemoteServiceForm
             // 
             this.AutoScaleDimensions = new SizeF(7F, 15F);
             this.AutoScaleMode = AutoScaleMode.Font;
             this.ClientSize = new Size(385, 410);
             this.Text = "Remote Credentials";
-            this.Controls.AddRange(new Control[] { label1, txtUrl, label2, txtToken, lblStatus, txtLogs, btnSave, btnTest });
+            this.Controls.AddRange(new Control[] { label1, txtUrl, label2, txtToken, lblStatus, txtLogs, btnClearView, btnTest, btnSave });
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterParent;

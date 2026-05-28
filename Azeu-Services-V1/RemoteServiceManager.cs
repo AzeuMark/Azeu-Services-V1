@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Linq;
 
 namespace AzeuServices_V1
 {
@@ -19,7 +20,7 @@ namespace AzeuServices_V1
 
         private ClientWebSocket _webSocket;
         private CancellationTokenSource _cts;
-        private AppSettings _settings;
+        private AppSettings _activeSettings; // Store the settings currently in use
         private string _cachePath;
         private string _logPath;
 
@@ -32,14 +33,17 @@ namespace AzeuServices_V1
             if (!Directory.Exists(_cachePath)) Directory.CreateDirectory(_cachePath);
         }
 
-        public void Start()
+        // Updated Start to allow passing temporary test settings
+        public void Start(AppSettings customSettings = null)
         {
-            Stop(); // Reset if already running
-            _settings = AppSettings.Load();
+            Stop();
 
-            if (!_settings.EnableRemoteService || string.IsNullOrEmpty(_settings.WebSocketUrl))
+            // Use provided settings (for testing) or load from disk (for normal run)
+            _activeSettings = customSettings ?? AppSettings.Load();
+
+            if (!_activeSettings.EnableRemoteService || string.IsNullOrEmpty(_activeSettings.WebSocketUrl))
             {
-                WriteLog("Remote Service disabled or URL missing.");
+                WriteLog("Remote Service stopped: Disabled or URL empty.");
                 return;
             }
 
@@ -62,23 +66,24 @@ namespace AzeuServices_V1
                 {
                     OnStatusChanged?.Invoke("Connecting...");
                     _webSocket = new ClientWebSocket();
-                    Uri serverUri = new Uri(_settings.WebSocketUrl);
+                    Uri serverUri = new Uri(_activeSettings.WebSocketUrl);
 
                     await _webSocket.ConnectAsync(serverUri, token);
+
                     OnStatusChanged?.Invoke("Connected");
-                    WriteLog("Connected to server: " + _settings.WebSocketUrl);
+                    WriteLog("Connected to server: " + _activeSettings.WebSocketUrl);
 
-                    // 1. Send Identity Handshake (Option A)
                     await SendIdentity();
-
-                    // 2. Start receiving messages
                     await ReceiveMessages(token);
                 }
                 catch (Exception ex)
                 {
+                    if (token.IsCancellationRequested) break;
+
                     OnStatusChanged?.Invoke("Disconnected");
                     WriteLog("Connection Error: " + ex.Message);
-                    await Task.Delay(30000, token); // Retry every 30 seconds
+
+                    await Task.Delay(30000, token);
                 }
             }
         }
@@ -89,24 +94,24 @@ namespace AzeuServices_V1
             {
                 type = "IDENTITY",
                 pc_name = Environment.MachineName,
-                token = _settings.WebSocketToken,
+                token = _activeSettings.WebSocketToken,
                 status = "Online"
             };
 
             string json = JsonSerializer.Serialize(identity);
             await SendString(json);
+            WriteLog("Handshake sent to server.");
         }
 
         private async Task ReceiveMessages(CancellationToken token)
         {
-            var buffer = new byte[1024 * 4];
+            var buffer = new byte[1024 * 8];
             while (_webSocket.State == WebSocketState.Open && !token.IsCancellationRequested)
             {
                 var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
                 if (result.MessageType == WebSocketMessageType.Close) break;
 
                 string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                WriteLog("Received Command: " + message);
                 await HandleCommand(message);
             }
         }
@@ -116,28 +121,39 @@ namespace AzeuServices_V1
             try
             {
                 using JsonDocument doc = JsonDocument.Parse(json);
-                string command = doc.RootElement.GetProperty("command").GetString().ToUpper();
+                JsonElement root = doc.RootElement;
 
-                switch (command)
+                if (root.TryGetProperty("command", out JsonElement cmdElement))
                 {
-                    case "SCREENSHOT":
-                        await CaptureAndSendScreenshot();
-                        break;
-                    case "SHUTDOWN":
-                        WriteLog("Remote Shutdown triggered.");
-                        ExecutePowerCommand("shutdown", "/s /f /t 0");
-                        break;
-                    case "RESTART":
-                        WriteLog("Remote Restart triggered.");
-                        ExecutePowerCommand("shutdown", "/r /f /t 0");
-                        break;
-                    case "MESSAGE":
-                        string content = doc.RootElement.GetProperty("content").GetString();
-                        ShowRemoteMessage(content);
-                        break;
+                    string command = cmdElement.GetString().ToUpper();
+                    WriteLog("Received Command: " + command);
+
+                    switch (command)
+                    {
+                        case "SCREENSHOT":
+                            await CaptureAndSendScreenshot();
+                            break;
+                        case "SHUTDOWN":
+                            WriteLog("Remote Shutdown triggered.");
+                            ExecutePowerCommand("shutdown", "/s /f /t 0");
+                            break;
+                        case "RESTART":
+                            WriteLog("Remote Restart triggered.");
+                            ExecutePowerCommand("shutdown", "/r /f /t 0");
+                            break;
+                        case "MESSAGE":
+                            if (root.TryGetProperty("content", out JsonElement msgElement))
+                            {
+                                ShowRemoteMessage(msgElement.GetString());
+                            }
+                            break;
+                    }
                 }
             }
-            catch (Exception ex) { WriteLog("Command Handling Error: " + ex.Message); }
+            catch (Exception ex)
+            {
+                WriteLog("Command Handling Error: " + ex.Message);
+            }
         }
 
         private async Task CaptureAndSendScreenshot()
@@ -147,7 +163,6 @@ namespace AzeuServices_V1
                 string fileName = $"shot_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
                 string fullPath = Path.Combine(_cachePath, fileName);
 
-                // Perform capture on UI thread or via Screen bounds
                 Rectangle bounds = Screen.PrimaryScreen.Bounds;
                 using (Bitmap bitmap = new Bitmap(bounds.Width, bounds.Height))
                 {
@@ -156,18 +171,15 @@ namespace AzeuServices_V1
                         g.CopyFromScreen(Point.Empty, Point.Empty, bounds.Size);
                     }
 
-                    // Efficiency: Downscale to 720p for pisonet performance
                     using (Bitmap resized = new Bitmap(bitmap, new Size(1280, 720)))
                     {
                         ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
                         EncoderParameters encoderParameters = new EncoderParameters(1);
                         encoderParameters.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 60L);
-
                         resized.Save(fullPath, jpgEncoder, encoderParameters);
                     }
                 }
 
-                // Convert to Base64 and send
                 byte[] imageBytes = File.ReadAllBytes(fullPath);
                 string base64Image = Convert.ToBase64String(imageBytes);
 
@@ -179,9 +191,8 @@ namespace AzeuServices_V1
                 };
 
                 await SendString(JsonSerializer.Serialize(response));
-                WriteLog("Screenshot sent and deleted.");
+                WriteLog("Screenshot sent.");
 
-                // Failsafe deletion
                 if (File.Exists(fullPath)) File.Delete(fullPath);
             }
             catch (Exception ex) { WriteLog("Screenshot Error: " + ex.Message); }
@@ -189,10 +200,7 @@ namespace AzeuServices_V1
 
         private void ShowRemoteMessage(string msg)
         {
-            // Use Task.Run and Invoke to ensure we don't block the WebSocket thread
-            // and that the UI form opens on the Main thread.
             Task.Run(() => {
-                // Find the active settings form or main form to invoke upon
                 if (Application.OpenForms.Count > 0)
                 {
                     Application.OpenForms[0].Invoke(new Action(() => {
@@ -203,7 +211,6 @@ namespace AzeuServices_V1
             });
             WriteLog("Remote Message displayed: " + msg);
         }
-
 
         private async Task SendString(string data)
         {
@@ -222,44 +229,24 @@ namespace AzeuServices_V1
             Process.Start(psi);
         }
 
-        private void WriteLog(string message)
+        public void WriteLog(string message)
         {
             try
             {
-                string logEntry = $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}";
+                string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
 
-                // Ensure the directory exists before writing
-                if (!Directory.Exists(_cachePath)) Directory.CreateDirectory(_cachePath);
-
-                // Rolling Log Logic (Prune if file size is > 2MB)
                 FileInfo fi = new FileInfo(_logPath);
                 if (fi.Exists && fi.Length > 2 * 1024 * 1024)
                 {
-                    // Read all lines from the log
                     string[] lines = File.ReadAllLines(_logPath);
-
-                    // Logic: Skip the first 50% of the lines to prune the oldest data
-                    // We use System.Linq.Enumerable.Skip to ensure compatibility
-                    var remainingLines = System.Linq.Enumerable.Skip(lines, lines.Length / 2);
-
-                    // Overwrite the log file with the remaining (newer) lines
+                    var remainingLines = lines.Skip(lines.Length / 2);
                     File.WriteAllLines(_logPath, remainingLines);
-
-                    // Add a separator indicating a prune happened
-                    File.AppendAllText(_logPath, $"--- Log Pruned at {DateTime.Now} to save space ---{Environment.NewLine}");
                 }
 
-                // Append the new log entry
                 File.AppendAllText(_logPath, logEntry);
-
-                // Also output to the Debug console for development
                 Debug.WriteLine("WS_LOG: " + message);
             }
-            catch (Exception ex)
-            {
-                // Fail silently to prevent crashing the main app if disk is full/locked
-                Debug.WriteLine("CRITICAL: Could not write to log: " + ex.Message);
-            }
+            catch { }
         }
 
         private ImageCodecInfo GetEncoder(ImageFormat format)
