@@ -344,11 +344,41 @@ namespace AzeuServices_V1
 
         private void OnFormClosing(object sender, FormClosingEventArgs e)
         {
-            // We only intercept if the user clicked the [X] button.
-            // If the system is shutting down or TryExitApp() is called, we let it pass.
             if (e.CloseReason == CloseReason.UserClosing)
             {
-                // 1. If "Minimize to Tray" is CHECKED, use standard tray behavior.
+                // Check if changes exist by looking at the status label
+                if (settingStatusLabel.Text == "Settings not saved")
+                {
+                    DialogResult result = MessageBox.Show("Save changes before closing?", "Unsaved Changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        // Trigger the save button logic
+                        saveSettingsBtn_Click(this, EventArgs.Empty);
+
+                        // If saving failed (due to validation/password), cancel the close
+                        if (settingStatusLabel.Text == "Settings not saved")
+                        {
+                            e.Cancel = true;
+                            return;
+                        }
+                    }
+                    else if (result == DialogResult.No)
+                    {
+                        // REVERT: User clicked No. Reload settings from disk to reset UI and logic.
+                        LoadConfig();
+                    }
+                    else if (result == DialogResult.Cancel)
+                    {
+                        // Abort closing and stay on the settings screen
+                        e.Cancel = true;
+                        return;
+                    }
+                }
+
+                // --- CLOSING / HIDING LOGIC ---
+
+                // Determine if we should minimize to tray normally
                 if (minimizeTrayCheckbox.Checked)
                 {
                     e.Cancel = true;
@@ -363,12 +393,9 @@ namespace AzeuServices_V1
                     return;
                 }
 
-                // 2. If "Minimize to Tray" is UNCHECKED, we check if AFK is active.
-                bool isAfkNeeded = shutdownAFKCheckbox.Checked;
-
-                if (isAfkNeeded)
+                // If Minimize to Tray is OFF, check if AFK is active to determine if we should "Stealth"
+                if (shutdownAFKCheckbox.Checked)
                 {
-                    // App stays alive in Stealth Mode (No taskbar, No tray icon).
                     e.Cancel = true;
                     this.allowVisible = false;
                     this.Opacity = 0;
@@ -376,22 +403,21 @@ namespace AzeuServices_V1
                     this.WindowState = FormWindowState.Minimized;
                     this.Hide();
 
-                    // Hide the tray icon so it doesn't show to the user.
+                    // Stealth mode: Keep alive but hide tray icon
                     if (trayIcon != null) trayIcon.Visible = false;
 
                     ManageCountdownLogic();
                 }
                 else
                 {
-                    // 3. AFK is OFF and Minimize to Tray is OFF. Permanent Exit.
-                    // Create stop signal for watchdog first.
+                    // AFK is OFF and Minimize to Tray is OFF: Exit completely
                     string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
                     try { File.WriteAllText(stopSignalPath, "STOP"); } catch { }
 
                     ManageWatchdog(false);
                     UpdateAppState(false);
-
                     if (monitor != null) monitor.Stop();
+
                     if (trayIcon != null)
                     {
                         trayIcon.Visible = false;
@@ -404,7 +430,7 @@ namespace AzeuServices_V1
             }
             else
             {
-                // System shutdown or other exit reasons
+                // Handle OS Shutdown or Task Manager kills
                 string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
                 try { File.WriteAllText(stopSignalPath, "STOP"); } catch { }
 
@@ -610,7 +636,8 @@ namespace AzeuServices_V1
 
         private void ManageCountdownLogic()
         {
-            // If settings are open, or manual hide, or AFK is off, close the HUD
+            // If the settings window is currently visible, we hide the HUD to avoid overlap.
+            // Otherwise, we follow the current UI checkbox states.
             if (this.Visible || !showCountdownCheckbox.Checked || isWidgetManuallyHidden || !shutdownAFKCheckbox.Checked)
             {
                 if (countdownWindow != null)
@@ -623,7 +650,7 @@ namespace AzeuServices_V1
                 return;
             }
 
-            // Create the HUD if it doesn't exist
+            // Create the HUD if it is enabled and doesn't exist
             if (countdownWindow == null || countdownWindow.IsDisposed)
             {
                 countdownWindow = new CountdownForm();
@@ -631,6 +658,8 @@ namespace AzeuServices_V1
                 countdownWindow.OnRequestOpen = () => TryOpenFromTray();
                 countdownWindow.OnRequestToggle = () => ToggleWidgetManual();
                 countdownWindow.OnRequestExit = () => TryExitApp();
+
+                // Apply properties from the current UI controls
                 countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
 
                 if (countdownOpacityCheckbox.Checked)
@@ -646,7 +675,7 @@ namespace AzeuServices_V1
                 countdownWindow.Show();
             }
 
-            // AFK Detection Logic
+            // Logic for triggering the Auto Shutdown sequence
             bool isTriggered = (monitor.IsKbAfk && monitor.IsMouseAfk) ||
                                (monitor.IsKbSuspicious && monitor.IsMouseAfk) ||
                                (monitor.IsMouseClickSuspicious && monitor.IsKbAfk);
@@ -657,7 +686,7 @@ namespace AzeuServices_V1
                 countdownWindow.SetAlertMode(true);
                 currentSecondsLeft--;
 
-                // Only shutdown if the 10-second startup grace period is over
+                // Final shutdown execution
                 if (currentSecondsLeft <= 0 && startupGraceSeconds <= 0)
                 {
                     PerformShutdown("AFK Detection");
@@ -666,15 +695,21 @@ namespace AzeuServices_V1
             else
             {
                 isCountingDown = false;
-                // Reset the timer to the values from settings
-                currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60;
+                // Revert timer to the duration set in the textbox
+                if (int.TryParse(countdownTextbox.Text, out int minutes))
+                {
+                    currentSecondsLeft = minutes * 60;
+                }
+                else
+                {
+                    currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60;
+                }
+
                 countdownWindow.SetAlertMode(false);
             }
 
-            // Manage the safety grace period during PC startup
             if (startupGraceSeconds > 0) startupGraceSeconds--;
 
-            // Update the numbers shown on the HUD
             if (countdownWindow != null)
             {
                 countdownWindow.UpdateTime(currentSecondsLeft);
