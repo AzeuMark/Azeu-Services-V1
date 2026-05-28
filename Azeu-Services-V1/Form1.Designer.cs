@@ -56,6 +56,7 @@
             limitDesktopShutdownAfter3Minutes = new CheckBox();
             viewLimitDesktopActionDialogBtn = new Button();
             btnRemoteSettings = new Button();
+            remoteServiceCheckbox = new CheckBox();
             SuspendLayout();
             // 
             // shutdownAFKCheckbox
@@ -439,7 +440,7 @@
             // 
             // btnRemoteSettings
             // 
-            btnRemoteSettings.Location = new Point(380, 369);
+            btnRemoteSettings.Location = new Point(340, 381);
             btnRemoteSettings.Name = "btnRemoteSettings";
             btnRemoteSettings.Size = new Size(111, 23);
             btnRemoteSettings.TabIndex = 40;
@@ -447,11 +448,23 @@
             btnRemoteSettings.UseVisualStyleBackColor = true;
             btnRemoteSettings.Click += btnRemoteSettings_Click;
             // 
+            // remoteServiceCheckbox
+            // 
+            remoteServiceCheckbox.AutoSize = true;
+            remoteServiceCheckbox.Location = new Point(339, 354);
+            remoteServiceCheckbox.Name = "remoteServiceCheckbox";
+            remoteServiceCheckbox.Size = new Size(154, 19);
+            remoteServiceCheckbox.TabIndex = 41;
+            remoteServiceCheckbox.Text = "remoteServiceCheckbox";
+            remoteServiceCheckbox.UseVisualStyleBackColor = true;
+            remoteServiceCheckbox.CheckedChanged += OnUIStateChanged;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(880, 650);
+            Controls.Add(remoteServiceCheckbox);
             Controls.Add(btnRemoteSettings);
             Controls.Add(viewLimitDesktopActionDialogBtn);
             Controls.Add(limitDesktopShutdownAfter3Minutes);
@@ -540,5 +553,6 @@
         private CheckBox limitDesktopShutdownAfter3Minutes;
         private Button viewLimitDesktopActionDialogBtn;
         private Button btnRemoteSettings;
+        private CheckBox remoteServiceCheckbox;
     }
 }
