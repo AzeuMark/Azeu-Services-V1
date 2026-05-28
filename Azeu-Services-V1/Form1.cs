@@ -65,11 +65,13 @@ namespace AzeuServices_V1
             uiTimer.Start();
 
             // --- LINK REMOTE COMMANDS TO LOCAL POWER FUNCTIONS ---
-            RemoteServiceManager.Instance.OnRequestShutdown = (reason) => {
+            RemoteServiceManager.Instance.OnRequestShutdown = (reason) =>
+            {
                 if (this.IsHandleCreated) this.Invoke(new Action(() => PerformShutdown(reason)));
             };
 
-            RemoteServiceManager.Instance.OnRequestRestart = (reason) => {
+            RemoteServiceManager.Instance.OnRequestRestart = (reason) =>
+            {
                 if (this.IsHandleCreated) this.Invoke(new Action(() => PerformRestart(reason)));
             };
 
@@ -495,31 +497,35 @@ namespace AzeuServices_V1
 
         private void SaveConfig()
         {
-            int.TryParse(countdownTextbox.Text, out int minutes); if (minutes < 1) minutes = 1;
-            int.TryParse(countdownOpacityTextbox.Text, out int opacity); if (opacity < 10) opacity = 10;
+            // 1. Parse and Validate Numbers
+            int.TryParse(countdownTextbox.Text, out int minutes);
+            if (minutes < 1) minutes = 1;
+
+            int.TryParse(countdownOpacityTextbox.Text, out int opacity);
+            if (opacity < 10) opacity = 10;
+            if (opacity > 100) opacity = 100;
+
+            // Validate the new AFK Warning Threshold (Limit: 10 to 60)
+            int.TryParse(afkWarningThresholdTextbox.Text, out int warningSecs);
+            if (warningSecs < 10) warningSecs = 10;
+            if (warningSecs > 60) warningSecs = 60;
+
+            // Handle Password Change Logic
             string finalPassword = string.IsNullOrEmpty(newPasswordTextbox.Text) ? lastSavedSettings.AdminPassword : newPasswordTextbox.Text;
 
+            // 2. Create the New Settings Object
             var newSettings = new AppSettings
             {
+                // AFK & Countdown Settings
                 ShutdownIfAFK = shutdownAFKCheckbox.Checked,
-                MinimizeToTray = minimizeTrayCheckbox.Checked,
-                LaunchOnStartup = startupCheckbox.Checked,
-                AdminPassword = finalPassword,
                 CountdownMinutes = minutes,
-                CountdownOpacity = opacity,
+                AfkWarningThreshold = warningSecs, // NEW
                 ShowCountdown = showCountdownCheckbox.Checked,
                 CountdownTopMost = countdownTopMostCheckbox.Checked,
                 EnableOpacity = countdownOpacityCheckbox.Checked,
-                ApplicationHighPriority = applicationHighPriorityCheckbox.Checked,
-                AdminShutdown = adminShutdownCheckbox.Checked,
-                ApplicationServiceActive = applicationServiceCheckbox.Checked,
-                IsAppRunningState = true,
+                CountdownOpacity = opacity,
 
-                // Remote Settings
-                EnableRemoteService = remoteServiceCheckbox.Checked,
-                WebSocketUrl = lastSavedSettings.WebSocketUrl,
-                WebSocketToken = lastSavedSettings.WebSocketToken,
-
+                // No Smoking Settings
                 EnableNoSmoking = noSmokingDialogCheckbox.Checked,
                 NoSmokingMessage = lastSavedSettings.NoSmokingMessage,
                 NoSmokingButtonText = lastSavedSettings.NoSmokingButtonText,
@@ -533,7 +539,12 @@ namespace AzeuServices_V1
                 NoSmokingDuration = lastSavedSettings.NoSmokingDuration,
                 NoSmokingImagePath = lastSavedSettings.NoSmokingImagePath,
                 NoSmokingImageSizeMode = lastSavedSettings.NoSmokingImageSizeMode,
+                NoSmokingButtonBottomMargin = lastSavedSettings.NoSmokingButtonBottomMargin,
+                NoSmokingButtonWidth = lastSavedSettings.NoSmokingButtonWidth,
+                NoSmokingButtonHeight = lastSavedSettings.NoSmokingButtonHeight,
+                NoSmokingButtonFontSize = lastSavedSettings.NoSmokingButtonFontSize,
 
+                // Desktop Curfew Settings
                 LimitDesktopUsage = limitDesktopUsageCheckbox.Checked,
                 LimitDesktopHour = limitDesktopHourTextbox.Text,
                 LimitDesktopMin = limitDesktopMinTextbox.Text,
@@ -541,7 +552,6 @@ namespace AzeuServices_V1
                 LimitDesktopHourOpen = limitDesktopHourOpenTextbox.Text,
                 LimitDesktopMinOpen = limitDesktopMinOpenTextbox.Text,
                 LimitDesktopAMPMOpen = limitDesktopOpenAMorPMComboBox.Text,
-
                 LimitDesktopAction = limitDesktopActionComboBox.Text,
                 LimitDesktopImagePath = limitDesktopImagePathTexbox.Text,
                 LimitShow5min = limitDesktopShowDialog5minCheckbox.Checked,
@@ -549,36 +559,45 @@ namespace AzeuServices_V1
                 LimitShow30min = limitDesktopShowDialog30minCheckbox.Checked,
                 LimitShutdownAfter3Min = limitDesktopShutdownAfter3Minutes.Checked,
 
+                // Curfew Styles (Preserved from Editor)
                 LimitMessage = lastSavedSettings.LimitMessage,
                 LimitFontFamily = lastSavedSettings.LimitFontFamily,
                 LimitFontSize = lastSavedSettings.LimitFontSize,
                 LimitBgColor = lastSavedSettings.LimitBgColor,
                 LimitTextColor = lastSavedSettings.LimitTextColor,
                 LimitShowBypassInstructions = lastSavedSettings.LimitShowBypassInstructions,
+                LimitShowShutdownCountdown = lastSavedSettings.LimitShowShutdownCountdown,
                 LimitShowReturningTime = lastSavedSettings.LimitShowReturningTime,
                 LimitReturningFontFamily = lastSavedSettings.LimitReturningFontFamily,
                 LimitReturningFontSize = lastSavedSettings.LimitReturningFontSize,
                 LimitReturningTextColor = lastSavedSettings.LimitReturningTextColor,
                 LimitReturningBottomMargin = lastSavedSettings.LimitReturningBottomMargin,
-                LimitShowShutdownCountdown = lastSavedSettings.LimitShowShutdownCountdown
+
+                // Application Basics
+                AdminPassword = finalPassword,
+                LaunchOnStartup = startupCheckbox.Checked,
+                MinimizeToTray = minimizeTrayCheckbox.Checked,
+                ApplicationHighPriority = applicationHighPriorityCheckbox.Checked,
+                AdminShutdown = adminShutdownCheckbox.Checked,
+                ApplicationServiceActive = applicationServiceCheckbox.Checked,
+                IsAppRunningState = true
             };
 
+            // 3. Save to File
             AppSettings.Save(newSettings);
             lastSavedSettings = newSettings;
 
+            // 4. Update Internal Running States
             startSeconds = minutes * 60;
             currentSecondsLeft = startSeconds;
+
             SetStartup(newSettings.LaunchOnStartup);
             ApplyHighPriorityLogic(newSettings.ApplicationHighPriority);
             ManageWatchdog(newSettings.ApplicationServiceActive);
-
-            // Apply Remote Service Action
-            if (newSettings.EnableRemoteService) RemoteServiceManager.Instance.Start();
-            else RemoteServiceManager.Instance.Stop();
-
             ResetWarningFlags();
+
+            // Refresh the UI to clear the "Unsaved" status
             UpdateSettingsStatus();
-            RefreshUIEnableState(); // Force UI Sync
         }
 
         private void LoadConfig()
@@ -594,6 +613,7 @@ namespace AzeuServices_V1
                 // Basic Settings
                 countdownTextbox.Text = lastSavedSettings.CountdownMinutes.ToString();
                 countdownOpacityTextbox.Text = lastSavedSettings.CountdownOpacity.ToString();
+                afkWarningThresholdTextbox.Text = lastSavedSettings.AfkWarningThreshold.ToString();
                 shutdownAFKCheckbox.Checked = lastSavedSettings.ShutdownIfAFK;
                 minimizeTrayCheckbox.Checked = lastSavedSettings.MinimizeToTray;
                 startupCheckbox.Checked = lastSavedSettings.LaunchOnStartup;
@@ -664,21 +684,19 @@ namespace AzeuServices_V1
 
             bool hasChanges = false;
 
-            // 1. AFK & Basic Settings Comparison
+            // 1. AFK & Countdown Settings Comparison
             if (shutdownAFKCheckbox.Checked != lastSavedSettings.ShutdownIfAFK) hasChanges = true;
             if (countdownTextbox.Text != lastSavedSettings.CountdownMinutes.ToString()) hasChanges = true;
+            if (afkWarningThresholdTextbox.Text != lastSavedSettings.AfkWarningThreshold.ToString()) hasChanges = true; // NEW
             if (showCountdownCheckbox.Checked != lastSavedSettings.ShowCountdown) hasChanges = true;
             if (countdownTopMostCheckbox.Checked != lastSavedSettings.CountdownTopMost) hasChanges = true;
             if (countdownOpacityCheckbox.Checked != lastSavedSettings.EnableOpacity) hasChanges = true;
             if (countdownOpacityTextbox.Text != lastSavedSettings.CountdownOpacity.ToString()) hasChanges = true;
 
-            // 2. No Smoking Comparison
+            // 2. No Smoking Setting Comparison
             if (noSmokingDialogCheckbox.Checked != lastSavedSettings.EnableNoSmoking) hasChanges = true;
 
-            // 3. Remote Service Comparison (New)
-            if (remoteServiceCheckbox.Checked != lastSavedSettings.EnableRemoteService) hasChanges = true;
-
-            // 4. Curfew Schedule Comparison
+            // 3. Curfew Schedule Comparison
             if (limitDesktopUsageCheckbox.Checked != lastSavedSettings.LimitDesktopUsage) hasChanges = true;
             if (limitDesktopHourTextbox.Text != lastSavedSettings.LimitDesktopHour) hasChanges = true;
             if (limitDesktopMinTextbox.Text != lastSavedSettings.LimitDesktopMin) hasChanges = true;
@@ -687,7 +705,7 @@ namespace AzeuServices_V1
             if (limitDesktopMinOpenTextbox.Text != lastSavedSettings.LimitDesktopMinOpen) hasChanges = true;
             if (limitDesktopOpenAMorPMComboBox.Text != lastSavedSettings.LimitDesktopAMPMOpen) hasChanges = true;
 
-            // 5. Curfew Action Comparison
+            // 4. Curfew Action & Warnings Comparison
             if (limitDesktopActionComboBox.Text != lastSavedSettings.LimitDesktopAction) hasChanges = true;
             if (limitDesktopImagePathTexbox.Text != lastSavedSettings.LimitDesktopImagePath) hasChanges = true;
             if (limitDesktopShowDialog5minCheckbox.Checked != lastSavedSettings.LimitShow5min) hasChanges = true;
@@ -695,17 +713,27 @@ namespace AzeuServices_V1
             if (limitDesktopShowDialog30minCheckbox.Checked != lastSavedSettings.LimitShow30min) hasChanges = true;
             if (limitDesktopShutdownAfter3Minutes.Checked != lastSavedSettings.LimitShutdownAfter3Min) hasChanges = true;
 
-            // 6. General System Comparison
+            // 5. Basic Application Settings Comparison
             if (adminShutdownCheckbox.Checked != lastSavedSettings.AdminShutdown) hasChanges = true;
             if (applicationServiceCheckbox.Checked != lastSavedSettings.ApplicationServiceActive) hasChanges = true;
             if (applicationHighPriorityCheckbox.Checked != lastSavedSettings.ApplicationHighPriority) hasChanges = true;
             if (startupCheckbox.Checked != lastSavedSettings.LaunchOnStartup) hasChanges = true;
             if (minimizeTrayCheckbox.Checked != lastSavedSettings.MinimizeToTray) hasChanges = true;
+
+            // 6. Security (Password Boxes)
             if (!string.IsNullOrEmpty(newPasswordTextbox.Text)) hasChanges = true;
 
-            // Update the Label UI
-            settingStatusLabel.Text = hasChanges ? "Settings not saved" : "No changes";
-            settingStatusLabel.ForeColor = hasChanges ? Color.OrangeRed : Color.Gray;
+            // Update the UI Label
+            if (hasChanges)
+            {
+                settingStatusLabel.Text = "Settings not saved";
+                settingStatusLabel.ForeColor = Color.OrangeRed;
+            }
+            else
+            {
+                settingStatusLabel.Text = "No changes";
+                settingStatusLabel.ForeColor = Color.Gray;
+            }
         }
 
         public void PerformShutdown(string reason)
@@ -796,9 +824,11 @@ namespace AzeuServices_V1
                 countdownWindow.SetAlertMode(true);
                 currentSecondsLeft--;
 
-                // --- NEW: AFK WARNING DIALOG LOGIC ---
-                // Show warning if 30 seconds or less remain
-                if (currentSecondsLeft <= 30 && currentSecondsLeft > 0)
+                // --- DYNAMIC AFK WARNING DIALOG LOGIC ---
+                // Fetch threshold from UI. Default to 30 if parsing fails somehow.
+                if (!int.TryParse(afkWarningThresholdTextbox.Text, out int threshold)) threshold = 30;
+
+                if (currentSecondsLeft <= threshold && currentSecondsLeft > 0)
                 {
                     if (activeAfkWarning == null || activeAfkWarning.IsDisposed)
                     {
@@ -820,7 +850,6 @@ namespace AzeuServices_V1
                 // NO LONGER AFK: Reset everything
                 isCountingDown = false;
 
-                // Use the current UI value for reset to ensure live testing works
                 if (int.TryParse(countdownTextbox.Text, out int minutes))
                     currentSecondsLeft = minutes * 60;
                 else
@@ -828,7 +857,7 @@ namespace AzeuServices_V1
 
                 countdownWindow.SetAlertMode(false);
 
-                // --- NEW: Close warning automatically if movement detected ---
+                // Close warning automatically if movement detected
                 if (activeAfkWarning != null)
                 {
                     activeAfkWarning.Close();
@@ -1109,5 +1138,20 @@ Loop";
             }
 
         }
+
+        private void afkWarningThresholdTextbox_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true;
+        }
+
+        private void afkWarningThresholdTextbox_Leave(object sender, EventArgs e)
+        {
+            if (!int.TryParse(afkWarningThresholdTextbox.Text, out int val)) val = 30;
+            if (val < 10) val = 10;
+            if (val > 60) val = 60;
+            afkWarningThresholdTextbox.Text = val.ToString();
+            UpdateSettingsStatus();
+        }
+
     }
 }

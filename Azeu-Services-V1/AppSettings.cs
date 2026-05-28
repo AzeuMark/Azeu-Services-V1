@@ -83,6 +83,9 @@ namespace AzeuServices_V1
 
         [System.Text.Json.Serialization.JsonIgnore]
         public DateTime? LastBypassDate { get; set; } = null;
+
+        public int AfkWarningThreshold { get; set; } = 30;
+
         private static string FilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
 
         public static void Save(AppSettings settings)

@@ -57,6 +57,8 @@
             viewLimitDesktopActionDialogBtn = new Button();
             btnRemoteSettings = new Button();
             remoteServiceCheckbox = new CheckBox();
+            afkWarningThresholdLabel = new Label();
+            afkWarningThresholdTextbox = new TextBox();
             SuspendLayout();
             // 
             // shutdownAFKCheckbox
@@ -119,7 +121,7 @@
             // noSmokingDialogCheckbox
             // 
             noSmokingDialogCheckbox.AutoSize = true;
-            noSmokingDialogCheckbox.Location = new Point(24, 215);
+            noSmokingDialogCheckbox.Location = new Point(15, 404);
             noSmokingDialogCheckbox.Name = "noSmokingDialogCheckbox";
             noSmokingDialogCheckbox.Size = new Size(167, 19);
             noSmokingDialogCheckbox.TabIndex = 6;
@@ -459,11 +461,37 @@
             remoteServiceCheckbox.UseVisualStyleBackColor = true;
             remoteServiceCheckbox.CheckedChanged += OnUIStateChanged;
             // 
+            // afkWarningThresholdLabel
+            // 
+            afkWarningThresholdLabel.AutoSize = true;
+            afkWarningThresholdLabel.Location = new Point(17, 186);
+            afkWarningThresholdLabel.Name = "afkWarningThresholdLabel";
+            afkWarningThresholdLabel.Size = new Size(121, 15);
+            afkWarningThresholdLabel.TabIndex = 42;
+            afkWarningThresholdLabel.Text = "Show Warning (Secs):";
+            // 
+            // afkWarningThresholdTextbox
+            // 
+            afkWarningThresholdTextbox.Location = new Point(155, 183);
+            afkWarningThresholdTextbox.Name = "afkWarningThresholdTextbox";
+            afkWarningThresholdTextbox.Size = new Size(40, 23);
+            afkWarningThresholdTextbox.TabIndex = 43;
+            afkWarningThresholdTextbox = new TextBox();
+            afkWarningThresholdTextbox.Location = new Point(155, 185);
+            afkWarningThresholdTextbox.Name = "afkWarningThresholdTextbox";
+            afkWarningThresholdTextbox.Size = new Size(40, 23);
+            afkWarningThresholdTextbox.TabIndex = 41;
+            afkWarningThresholdTextbox.TextChanged += new EventHandler(this.OnSettingChanged);
+            afkWarningThresholdTextbox.KeyPress += new KeyPressEventHandler(this.afkWarningThresholdTextbox_KeyPress);
+            afkWarningThresholdTextbox.Leave += new EventHandler(this.afkWarningThresholdTextbox_Leave);
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(880, 650);
+            Controls.Add(afkWarningThresholdTextbox);
+            Controls.Add(afkWarningThresholdLabel);
             Controls.Add(remoteServiceCheckbox);
             Controls.Add(btnRemoteSettings);
             Controls.Add(viewLimitDesktopActionDialogBtn);
@@ -504,6 +532,9 @@
             Controls.Add(kboardStatusLabel);
             Controls.Add(suspiciousKeysLabel);
             Controls.Add(shutdownAFKCheckbox);
+            Controls.Add(this.afkWarningThresholdLabel);
+            Controls.Add(this.afkWarningThresholdTextbox);
+
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Azeu Services V1";
@@ -554,5 +585,7 @@
         private Button viewLimitDesktopActionDialogBtn;
         private Button btnRemoteSettings;
         private CheckBox remoteServiceCheckbox;
+        private Label afkWarningThresholdLabel;
+        private TextBox afkWarningThresholdTextbox;
     }
 }
