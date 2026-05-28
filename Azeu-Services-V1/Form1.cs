@@ -42,6 +42,7 @@ namespace AzeuServices_V1
 
         private bool isShutdownInProgress = false;
         private bool isRestartInProgress = false;
+        private AfkWarningForm? activeAfkWarning = null;
 
 
         public Form1()
@@ -578,7 +579,6 @@ namespace AzeuServices_V1
             ResetWarningFlags();
             UpdateSettingsStatus();
             RefreshUIEnableState(); // Force UI Sync
-            MessageBox.Show("Settings saved successfully!");
         }
 
         private void LoadConfig()
@@ -753,21 +753,16 @@ namespace AzeuServices_V1
 
         private void ManageCountdownLogic()
         {
-            // If the settings window is currently visible, we hide the HUD to avoid overlap.
-            // Otherwise, we follow the current UI checkbox states.
+            // If settings window is open, or widget is hidden, or AFK is off, kill everything.
             if (this.Visible || !showCountdownCheckbox.Checked || isWidgetManuallyHidden || !shutdownAFKCheckbox.Checked)
             {
-                if (countdownWindow != null)
-                {
-                    countdownWindow.AllowClose = true;
-                    countdownWindow.Close();
-                    countdownWindow = null;
-                }
+                if (countdownWindow != null) { countdownWindow.AllowClose = true; countdownWindow.Close(); countdownWindow = null; }
+                if (activeAfkWarning != null) { activeAfkWarning.Close(); activeAfkWarning = null; }
                 isCountingDown = false;
                 return;
             }
 
-            // Create the HUD if it is enabled and doesn't exist
+            // 1. Manage the small Countdown HUD Widget
             if (countdownWindow == null || countdownWindow.IsDisposed)
             {
                 countdownWindow = new CountdownForm();
@@ -775,8 +770,6 @@ namespace AzeuServices_V1
                 countdownWindow.OnRequestOpen = () => TryOpenFromTray();
                 countdownWindow.OnRequestToggle = () => ToggleWidgetManual();
                 countdownWindow.OnRequestExit = () => TryExitApp();
-
-                // Apply properties from the current UI controls
                 countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
 
                 if (countdownOpacityCheckbox.Checked)
@@ -792,7 +785,7 @@ namespace AzeuServices_V1
                 countdownWindow.Show();
             }
 
-            // Logic for triggering the Auto Shutdown sequence
+            // 2. Detection Logic
             bool isTriggered = (monitor.IsKbAfk && monitor.IsMouseAfk) ||
                                (monitor.IsKbSuspicious && monitor.IsMouseAfk) ||
                                (monitor.IsMouseClickSuspicious && monitor.IsKbAfk);
@@ -803,34 +796,48 @@ namespace AzeuServices_V1
                 countdownWindow.SetAlertMode(true);
                 currentSecondsLeft--;
 
-                // Final shutdown execution
+                // --- NEW: AFK WARNING DIALOG LOGIC ---
+                // Show warning if 30 seconds or less remain
+                if (currentSecondsLeft <= 30 && currentSecondsLeft > 0)
+                {
+                    if (activeAfkWarning == null || activeAfkWarning.IsDisposed)
+                    {
+                        activeAfkWarning = new AfkWarningForm();
+                        activeAfkWarning.Show();
+                    }
+                    activeAfkWarning.UpdateCountdown(currentSecondsLeft);
+                }
+
+                // Perform actual shutdown
                 if (currentSecondsLeft <= 0 && startupGraceSeconds <= 0)
                 {
+                    if (activeAfkWarning != null) { activeAfkWarning.Close(); activeAfkWarning = null; }
                     PerformShutdown("AFK Detection");
                 }
             }
             else
             {
+                // NO LONGER AFK: Reset everything
                 isCountingDown = false;
-                // Revert timer to the duration set in the textbox
+
+                // Use the current UI value for reset to ensure live testing works
                 if (int.TryParse(countdownTextbox.Text, out int minutes))
-                {
                     currentSecondsLeft = minutes * 60;
-                }
                 else
-                {
                     currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60;
-                }
 
                 countdownWindow.SetAlertMode(false);
+
+                // --- NEW: Close warning automatically if movement detected ---
+                if (activeAfkWarning != null)
+                {
+                    activeAfkWarning.Close();
+                    activeAfkWarning = null;
+                }
             }
 
             if (startupGraceSeconds > 0) startupGraceSeconds--;
-
-            if (countdownWindow != null)
-            {
-                countdownWindow.UpdateTime(currentSecondsLeft);
-            }
+            if (countdownWindow != null) countdownWindow.UpdateTime(currentSecondsLeft);
         }
 
         protected override void WndProc(ref Message m)
