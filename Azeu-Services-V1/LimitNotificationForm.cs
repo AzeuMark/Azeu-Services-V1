@@ -6,7 +6,7 @@ namespace AzeuServices_V1
 {
     public class LimitNotificationForm : Form
     {
-        public LimitNotificationForm(string message, Point countdownLocation)
+        public LimitNotificationForm(string message, Point anchorLocation)
         {
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -14,35 +14,39 @@ namespace AzeuServices_V1
             this.StartPosition = FormStartPosition.Manual;
             this.TopMost = true;
             this.Width = 250;
-            this.Height = 120;
+            this.Height = 100;
             this.Text = "Pisonet Notice";
+            this.ShowInTaskbar = false;
 
-            // Position it exactly above the Countdown Form
-            this.Location = new Point(countdownLocation.X, countdownLocation.Y - this.Height - 5);
+            // Calculate Location: 
+            // anchorLocation.Y is either the Top of the Countdown HUD or the bottom of the screen.
+            // We place this form 5 pixels above that point.
+            this.Location = new Point(anchorLocation.X, anchorLocation.Y - this.Height - 5);
 
             Label lbl = new Label()
             {
                 Text = message,
-                Dock = DockStyle.Top,
-                Height = 50,
+                Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Padding = new Padding(10)
             };
 
-            Button btn = new Button()
-            {
-                Text = "Dismiss",
-                Dock = DockStyle.Bottom,
-                Height = 30
-            };
-            btn.Click += (s, e) => this.Close();
+            // Clicking dismisses the warning
+            lbl.Click += (s, e) => this.Close();
+            this.Click += (s, e) => this.Close();
 
             this.Controls.Add(lbl);
-            this.Controls.Add(btn);
 
-            // Clicking anywhere on form closes it
-            this.Click += (s, e) => this.Close();
-            lbl.Click += (s, e) => this.Close();
+            // Auto-close after 10 seconds. 
+            // Explicitly naming the namespace to avoid CS0104 Ambiguity Error.
+            System.Windows.Forms.Timer autoClose = new System.Windows.Forms.Timer { Interval = 10000 };
+            autoClose.Tick += (s, e) => {
+                autoClose.Stop();
+                autoClose.Dispose();
+                this.Close();
+            };
+            autoClose.Start();
         }
     }
 }

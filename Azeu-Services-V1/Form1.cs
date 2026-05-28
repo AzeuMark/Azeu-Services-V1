@@ -95,40 +95,33 @@ namespace AzeuServices_V1
         {
             if (!lastSavedSettings.LimitDesktopUsage) return;
 
-            // 1. If Admin bypassed the lock today, don't show it again
+            // 1. Skip if bypassed today
             if (lastSavedSettings.LastBypassDate.HasValue && lastSavedSettings.LastBypassDate.Value.Date == DateTime.Today)
             {
-                // If the lock screen is somehow still open, close it
                 if (activeLockScreen != null) { activeLockScreen.Close(); activeLockScreen = null; }
                 return;
             }
 
-            // 2. Parse Closing Time (Start of Curfew)
+            // 2. Parse Closing and Opening Times
             if (!DateTime.TryParse($"{lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM}", out DateTime curfewStart)) return;
-
-            // 3. Parse Opening Time (End of Curfew)
             if (!DateTime.TryParse($"{lastSavedSettings.LimitDesktopHourOpen}:{lastSavedSettings.LimitDesktopMinOpen} {lastSavedSettings.LimitDesktopAMPMOpen}", out DateTime curfewEnd)) return;
 
             DateTime now = DateTime.Now;
             bool isInsideCurfew = false;
 
-            // 4. Midnight Crossing Logic (Critical Thinking)
-            // Example: 10 PM to 8 AM
+            // 3. Determine if currently in Curfew (Logic for crossing midnight)
             if (curfewStart > curfewEnd)
             {
-                // If current time is after 10PM OR before 8AM
                 isInsideCurfew = (now >= curfewStart || now < curfewEnd);
             }
             else
             {
-                // Example: 1 PM to 5 PM
                 isInsideCurfew = (now >= curfewStart && now < curfewEnd);
             }
 
-            // 5. Handle the Lock Screen state
+            // 4. Handle Lock Screen
             if (isInsideCurfew)
             {
-                // It is currently CURFEW TIME
                 if (activeLockScreen == null || activeLockScreen.IsDisposed)
                 {
                     if (lastSavedSettings.LimitDesktopAction == "Shutdown")
@@ -137,7 +130,6 @@ namespace AzeuServices_V1
                     }
                     else
                     {
-                        // Show the lock screen
                         activeLockScreen = new LimitClosedForm(lastSavedSettings, () => PerformShutdown("Desktop Limit Auto-Close"));
                         activeLockScreen.FormClosed += (s, e) => { if (activeLockScreen?.DialogResult == DialogResult.OK) activeLockScreen = null; };
                         activeLockScreen.Show();
@@ -146,8 +138,6 @@ namespace AzeuServices_V1
             }
             else
             {
-                // It is currently OPEN TIME
-                // If the lock screen is visible, close it automatically
                 if (activeLockScreen != null && !activeLockScreen.IsDisposed)
                 {
                     activeLockScreen.Close();
@@ -156,31 +146,33 @@ namespace AzeuServices_V1
                 }
             }
 
-            // 6. Warning Logic (Only show if we are approaching the curfewStart)
+            // 5. Warning Logic (The Fix)
             if (!isInsideCurfew)
             {
-                TimeSpan timeUntilCurfew = curfewStart - now;
-                // If Curfew is at 10PM and it's currently 9:30PM, totalMinutes is 30
-                double totalMinutesRemaining = timeUntilCurfew.TotalMinutes;
-
-                // Ensure we only warn if curfew is in the future today
-                if (totalMinutesRemaining > 0)
+                // Calculate the NEXT occurrence of the curfewStart
+                DateTime nextCurfewTrigger = curfewStart;
+                if (now > nextCurfewTrigger)
                 {
-                    if (lastSavedSettings.LimitShow30min && totalMinutesRemaining <= 30 && totalMinutesRemaining > 29 && !hasShown30mWarning)
-                    {
-                        hasShown30mWarning = true;
-                        ShowLimitWarning($"PC will close at {lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM}");
-                    }
-                    else if (lastSavedSettings.LimitShow10min && totalMinutesRemaining <= 10 && totalMinutesRemaining > 9 && !hasShown10mWarning)
-                    {
-                        hasShown10mWarning = true;
-                        ShowLimitWarning($"PC will close at {lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM}");
-                    }
-                    else if (lastSavedSettings.LimitShow5min && totalMinutesRemaining <= 5 && totalMinutesRemaining > 0 && !hasShown5mWarning)
-                    {
-                        hasShown5mWarning = true;
-                        ShowLimitWarning($"PC will close at {lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM}");
-                    }
+                    nextCurfewTrigger = nextCurfewTrigger.AddDays(1);
+                }
+
+                double totalMinutesRemaining = (nextCurfewTrigger - now).TotalMinutes;
+
+                // Trigger warnings based on thresholds
+                if (lastSavedSettings.LimitShow30min && totalMinutesRemaining <= 30 && !hasShown30mWarning)
+                {
+                    hasShown30mWarning = true;
+                    ShowLimitWarning($"PC will close in 30 minutes ({lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM})");
+                }
+                else if (lastSavedSettings.LimitShow10min && totalMinutesRemaining <= 10 && !hasShown10mWarning)
+                {
+                    hasShown10mWarning = true;
+                    ShowLimitWarning($"PC will close in 10 minutes ({lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM})");
+                }
+                else if (lastSavedSettings.LimitShow5min && totalMinutesRemaining <= 5 && !hasShown5mWarning)
+                {
+                    hasShown5mWarning = true;
+                    ShowLimitWarning($"PC will close in 5 minutes ({lastSavedSettings.LimitDesktopHour}:{lastSavedSettings.LimitDesktopMin} {lastSavedSettings.LimitDesktopAMPM})");
                 }
             }
         }
@@ -195,12 +187,32 @@ namespace AzeuServices_V1
 
         private void ShowLimitWarning(string msg)
         {
-            Point spawnLoc = new Point(Screen.PrimaryScreen.WorkingArea.Right - 300, Screen.PrimaryScreen.WorkingArea.Bottom - 150);
+            // 1. Requirement: Do not show if the main settings window is visible
+            if (this.Visible) return;
+
+            // Close existing warning to prevent multiple stacks
+            if (activeLimitWarning != null && !activeLimitWarning.IsDisposed)
+            {
+                activeLimitWarning.Close();
+            }
+
+            // 2. Requirement: Position above Countdown HUD
+            // Start with the standard bottom position
+            int xPos = Screen.PrimaryScreen.WorkingArea.Right - 260;
+            int yPos = Screen.PrimaryScreen.WorkingArea.Bottom;
+
+            // If the Countdown HUD exists and is showing, move our target Y coordinate to its TOP
+            if (countdownWindow != null && !countdownWindow.IsDisposed && countdownWindow.Visible)
+            {
+                yPos = countdownWindow.Top;
+            }
+
+            Point spawnLoc = new Point(xPos, yPos);
+
             activeLimitWarning = new LimitNotificationForm(msg, spawnLoc);
             activeLimitWarning.FormClosed += (s, e) => activeLimitWarning = null;
             activeLimitWarning.Show();
         }
-
         private void SetupTrayIcon()
         {
             trayIcon = new NotifyIcon() { Icon = SystemIcons.Application, Visible = true, Text = "Azeu Services V1" };
