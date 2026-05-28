@@ -254,36 +254,167 @@ namespace AzeuServices_V1
         private void TryOpenFromTray()
         {
             if (!this.IsHandleCreated) return;
-            if (allowVisible) { if (this.WindowState == FormWindowState.Minimized) this.WindowState = FormWindowState.Normal; this.Show(); this.Activate(); return; }
+
+            // If the window is already visible, just bring it to the front
+            if (allowVisible)
+            {
+                if (this.WindowState == FormWindowState.Minimized)
+                    this.WindowState = FormWindowState.Normal;
+
+                this.Show();
+                this.Activate();
+                this.BringToFront();
+                return;
+            }
+
+            // Try to authenticate. PasswordDialog will prevent multiple prompts itself.
             if (PasswordDialog.Authenticate())
             {
-                allowVisible = true; this.Opacity = 1.0; this.ShowInTaskbar = true; this.WindowState = FormWindowState.Normal; this.Show(); this.Activate();
+                allowVisible = true;
+                this.Opacity = 1.0;
+                this.ShowInTaskbar = true;
+                this.WindowState = FormWindowState.Normal;
+                this.Show();
+                this.Activate();
+                this.BringToFront();
+
+                // Restore tray icon visibility when opening settings
+                if (trayIcon != null) trayIcon.Visible = true;
+
                 isWidgetManuallyHidden = false;
-                if (trayToggleItem != null) { trayToggleItem.Text = "Hide Widget"; trayToggleItem.Image = GetImageFromResource(Properties.Resources.hide_icon); }
-                if (countdownWindow != null) { countdownWindow.AllowClose = true; countdownWindow.Close(); countdownWindow = null; }
+
+                if (trayToggleItem != null)
+                {
+                    trayToggleItem.Text = "Hide Widget";
+                    trayToggleItem.Image = GetImageFromResource(Properties.Resources.hide_icon);
+                }
+
+                if (countdownWindow != null)
+                {
+                    countdownWindow.AllowClose = true;
+                    countdownWindow.Close();
+                    countdownWindow = null;
+                }
             }
         }
 
         private void ExecuteSilentCommand(string command, string arguments)
         {
-            ProcessStartInfo psi = new ProcessStartInfo(command, arguments) { CreateNoWindow = true, UseShellExecute = false, WindowStyle = ProcessWindowStyle.Hidden };
-            Process.Start(psi);
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo(command, arguments)
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Command Error: " + ex.Message);
+            }
         }
 
         private void TryExitApp()
         {
-            if (PasswordDialog.Authenticate()) { UpdateAppState(false); ManageWatchdog(false); monitor.Stop(); trayIcon.Dispose(); Application.Exit(); }
+            if (PasswordDialog.Authenticate())
+            {
+                // 1. Tell the Watchdog to stop and wait for it
+                ManageWatchdog(false);
+
+                // 2. Small delay to ensure Windows handles the process termination
+                System.Threading.Thread.Sleep(500);
+
+                // 3. Clean up the App's tray icon and resources
+                UpdateAppState(false);
+                if (monitor != null) monitor.Stop();
+
+                if (trayIcon != null)
+                {
+                    trayIcon.Visible = false;
+                    trayIcon.Dispose();
+                }
+
+                // 4. Force terminate the application immediately.
+                // This stops all threads so the watchdog doesn't see a "zombie" process.
+                Environment.Exit(0);
+            }
         }
 
         private void OnFormClosing(object sender, FormClosingEventArgs e)
         {
-            if (minimizeTrayCheckbox.Checked && e.CloseReason == CloseReason.UserClosing)
+            // We only intercept if the user clicked the [X] button.
+            // If the system is shutting down or TryExitApp() is called, we let it pass.
+            if (e.CloseReason == CloseReason.UserClosing)
             {
-                e.Cancel = true; allowVisible = false; this.Opacity = 0; this.ShowInTaskbar = false; this.WindowState = FormWindowState.Minimized; this.Hide(); ManageCountdownLogic();
-            }
-            else { SystemEvents.SessionEnding -= OnSystemSessionEnding; UpdateAppState(false); ManageWatchdog(false); if (monitor != null) monitor.Stop(); if (trayIcon != null) trayIcon.Dispose(); }
-        }
+                // 1. If "Minimize to Tray" is CHECKED, use standard tray behavior.
+                if (minimizeTrayCheckbox.Checked)
+                {
+                    e.Cancel = true;
+                    this.allowVisible = false;
+                    this.Opacity = 0;
+                    this.ShowInTaskbar = false;
+                    this.WindowState = FormWindowState.Minimized;
+                    this.Hide();
 
+                    if (trayIcon != null) trayIcon.Visible = true;
+                    ManageCountdownLogic();
+                    return;
+                }
+
+                // 2. If "Minimize to Tray" is UNCHECKED, we check if AFK is active.
+                bool isAfkNeeded = shutdownAFKCheckbox.Checked;
+
+                if (isAfkNeeded)
+                {
+                    // App stays alive in Stealth Mode (No taskbar, No tray icon).
+                    e.Cancel = true;
+                    this.allowVisible = false;
+                    this.Opacity = 0;
+                    this.ShowInTaskbar = false;
+                    this.WindowState = FormWindowState.Minimized;
+                    this.Hide();
+
+                    // Hide the tray icon so it doesn't show to the user.
+                    if (trayIcon != null) trayIcon.Visible = false;
+
+                    ManageCountdownLogic();
+                }
+                else
+                {
+                    // 3. AFK is OFF and Minimize to Tray is OFF. Permanent Exit.
+                    // Create stop signal for watchdog first.
+                    string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
+                    try { File.WriteAllText(stopSignalPath, "STOP"); } catch { }
+
+                    ManageWatchdog(false);
+                    UpdateAppState(false);
+
+                    if (monitor != null) monitor.Stop();
+                    if (trayIcon != null)
+                    {
+                        trayIcon.Visible = false;
+                        trayIcon.Dispose();
+                    }
+
+                    SystemEvents.SessionEnding -= OnSystemSessionEnding;
+                    Environment.Exit(0);
+                }
+            }
+            else
+            {
+                // System shutdown or other exit reasons
+                string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
+                try { File.WriteAllText(stopSignalPath, "STOP"); } catch { }
+
+                ManageWatchdog(false);
+                UpdateAppState(false);
+                if (monitor != null) monitor.Stop();
+                if (trayIcon != null) trayIcon.Dispose();
+                SystemEvents.SessionEnding -= OnSystemSessionEnding;
+            }
+        }
 
         private void SaveConfig()
         {
@@ -479,12 +610,20 @@ namespace AzeuServices_V1
 
         private void ManageCountdownLogic()
         {
+            // If settings are open, or manual hide, or AFK is off, close the HUD
             if (this.Visible || !showCountdownCheckbox.Checked || isWidgetManuallyHidden || !shutdownAFKCheckbox.Checked)
             {
-                if (countdownWindow != null) { countdownWindow.AllowClose = true; countdownWindow.Close(); countdownWindow = null; }
-                isCountingDown = false; return;
+                if (countdownWindow != null)
+                {
+                    countdownWindow.AllowClose = true;
+                    countdownWindow.Close();
+                    countdownWindow = null;
+                }
+                isCountingDown = false;
+                return;
             }
 
+            // Create the HUD if it doesn't exist
             if (countdownWindow == null || countdownWindow.IsDisposed)
             {
                 countdownWindow = new CountdownForm();
@@ -492,8 +631,6 @@ namespace AzeuServices_V1
                 countdownWindow.OnRequestOpen = () => TryOpenFromTray();
                 countdownWindow.OnRequestToggle = () => ToggleWidgetManual();
                 countdownWindow.OnRequestExit = () => TryExitApp();
-
-                // Ensure the TopMost property is set based on the checkbox right when created
                 countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
 
                 if (countdownOpacityCheckbox.Checked)
@@ -509,23 +646,39 @@ namespace AzeuServices_V1
                 countdownWindow.Show();
             }
 
-            bool isTriggered = (monitor.IsKbAfk && monitor.IsMouseAfk) || (monitor.IsKbSuspicious && monitor.IsMouseAfk) || (monitor.IsMouseClickSuspicious && monitor.IsKbAfk);
+            // AFK Detection Logic
+            bool isTriggered = (monitor.IsKbAfk && monitor.IsMouseAfk) ||
+                               (monitor.IsKbSuspicious && monitor.IsMouseAfk) ||
+                               (monitor.IsMouseClickSuspicious && monitor.IsKbAfk);
+
             if (isTriggered)
             {
                 isCountingDown = true;
                 countdownWindow.SetAlertMode(true);
                 currentSecondsLeft--;
-                if (currentSecondsLeft <= 0 && startupGraceSeconds <= 0) PerformShutdown("AFK Detection");
+
+                // Only shutdown if the 10-second startup grace period is over
+                if (currentSecondsLeft <= 0 && startupGraceSeconds <= 0)
+                {
+                    PerformShutdown("AFK Detection");
+                }
             }
             else
             {
                 isCountingDown = false;
+                // Reset the timer to the values from settings
                 currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60;
                 countdownWindow.SetAlertMode(false);
             }
 
+            // Manage the safety grace period during PC startup
             if (startupGraceSeconds > 0) startupGraceSeconds--;
-            countdownWindow?.UpdateTime(currentSecondsLeft);
+
+            // Update the numbers shown on the HUD
+            if (countdownWindow != null)
+            {
+                countdownWindow.UpdateTime(currentSecondsLeft);
+            }
         }
 
         protected override void WndProc(ref Message m)
@@ -627,7 +780,94 @@ namespace AzeuServices_V1
 
         private void UpdateAppState(bool isActive) { lastSavedSettings.IsAppRunningState = isActive; AppSettings.Save(lastSavedSettings); }
 
-        private void ManageWatchdog(bool enable) { if (!enable) ExecuteSilentCommand("taskkill", "/F /IM wscript.exe /T"); }
+        private void ManageWatchdog(bool enable)
+        {
+            string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.vbs");
+            string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
+
+            if (enable)
+            {
+                try
+                {
+                    // Delete the stop signal if it exists so the watchdog can run
+                    if (File.Exists(stopSignalPath)) File.Delete(stopSignalPath);
+
+                    string exeName = Path.GetFileName(Application.ExecutablePath);
+                    string exePath = Application.ExecutablePath;
+
+                    // NEW VBSCRIPT LOGIC: 
+                    // 1. Checks if 'watchdog.stop' exists.
+                    // 2. If it exists, the script deletes the stop file and exits immediately.
+                    // 3. Otherwise, it checks if the app is running.
+                    string vbsContent = $@"Set shell = CreateObject(""WScript.Shell"")
+Set fso = CreateObject(""Scripting.FileSystemObject"")
+stopFile = ""{stopSignalPath.Replace("\\", "\\\\")}""
+
+Do
+    ' Check if we were told to stop
+    If fso.FileExists(stopFile) Then
+        fso.DeleteFile(stopFile)
+        WScript.Quit
+    End If
+
+    Set service = GetObject(""winmgmts:{{impersonationLevel=impersonate}}!\\.\root\cimv2"")
+    Set processes = service.ExecQuery(""SELECT * FROM Win32_Process WHERE Name = '{exeName}'"")
+    
+    running = False
+    For Each process in processes
+        running = True
+    Next
+    
+    If Not running Then
+        ' Re-check stop file one last time before launching to prevent race condition
+        If Not fso.FileExists(stopFile) Then
+            shell.Run """"""{exePath}""""""
+        End If
+    End If
+    
+    WScript.Sleep 2000 ' Faster check for more responsive exit
+Loop";
+
+                    File.WriteAllText(scriptPath, vbsContent);
+
+                    ProcessStartInfo psi = new ProcessStartInfo("wscript.exe")
+                    {
+                        Arguments = $"\"{scriptPath}\"",
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    };
+
+                    // Ensure no old instances are running
+                    ExecuteSilentCommand("taskkill", "/F /IM wscript.exe /FI \"COMMANDLINE eq *watchdog.vbs*\"");
+                    Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Watchdog Start Error: " + ex.Message);
+                }
+            }
+            else
+            {
+                // DISABLE LOGIC: 
+                // 1. Create the stop signal file first.
+                // 2. The script will see this and exit on its own.
+                // 3. We also call taskkill as a backup.
+                try
+                {
+                    File.WriteAllText(stopSignalPath, "STOP");
+
+                    ProcessStartInfo killOld = new ProcessStartInfo("taskkill", "/F /IM wscript.exe /FI \"COMMANDLINE eq *watchdog.vbs*\"")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    var proc = Process.Start(killOld);
+                    proc?.WaitForExit(2000); // Wait for watchdog to die
+                }
+                catch { }
+            }
+        }
 
         private void viewNoSmokingDialog_Click(object sender, EventArgs e)
         {
