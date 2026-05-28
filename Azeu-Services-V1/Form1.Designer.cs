@@ -56,6 +56,7 @@
             btnRemoteSettings = new Button();
             afkWarningThresholdLabel = new Label();
             afkWarningThresholdTextbox = new TextBox();
+            remoteServiceCheckbox = new CheckBox();
             SuspendLayout();
             // 
             // shutdownAFKCheckbox
@@ -449,11 +450,23 @@
             afkWarningThresholdTextbox.KeyPress += afkWarningThresholdTextbox_KeyPress;
             afkWarningThresholdTextbox.Leave += afkWarningThresholdTextbox_Leave;
             // 
+            // remoteServiceCheckbox
+            // 
+            remoteServiceCheckbox.AutoSize = true;
+            remoteServiceCheckbox.Location = new Point(339, 354);
+            remoteServiceCheckbox.Name = "remoteServiceCheckbox";
+            remoteServiceCheckbox.Size = new Size(154, 19);
+            remoteServiceCheckbox.TabIndex = 41;
+            remoteServiceCheckbox.Text = "remoteServiceCheckbox";
+            remoteServiceCheckbox.UseVisualStyleBackColor = true;
+            remoteServiceCheckbox.CheckedChanged += OnUIStateChanged;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(880, 650);
+            Controls.Add(remoteServiceCheckbox);
             Controls.Add(btnRemoteSettings);
             Controls.Add(viewLimitDesktopActionDialogBtn);
             Controls.Add(limitDesktopShutdownAfter3Minutes);
@@ -542,5 +555,6 @@
         private Button btnRemoteSettings;
         private Label afkWarningThresholdLabel;
         private TextBox afkWarningThresholdTextbox;
+        private CheckBox remoteServiceCheckbox;
     }
 }
