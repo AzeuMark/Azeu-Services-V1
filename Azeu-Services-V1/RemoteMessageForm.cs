@@ -7,9 +7,10 @@ namespace AzeuServices_V1
 {
     public partial class RemoteMessageForm : Form
     {
-        // Static list to track all open message forms
+        // Static list to track all open message forms for dynamic stacking
         private static List<RemoteMessageForm> _activeForms = new List<RemoteMessageForm>();
         private const int MaxForms = 5;
+        private const int autoCloseSeconds = 5;
         private System.Windows.Forms.Timer _autoCloseTimer;
 
         public RemoteMessageForm(string message)
@@ -19,21 +20,23 @@ namespace AzeuServices_V1
             this.TopMost = true;
             this.ShowInTaskbar = false;
             this.FormBorderStyle = FormBorderStyle.None;
-            this.BackColor = Color.FromArgb(30, 30, 30);
+            this.BackColor = Color.FromArgb(30, 30, 30); // Dark theme
 
             lblMessage.Text = message;
 
-            // Handle limits and add to list
+            // Handle limit: Close oldest if we exceed 5
             if (_activeForms.Count >= MaxForms)
             {
-                // Close the oldest one (index 0)
-                _activeForms[0].Close();
+                if (_activeForms[0] != null && !_activeForms[0].IsDisposed)
+                {
+                    _activeForms[0].Close();
+                }
             }
 
             _activeForms.Add(this);
 
-            // Set up the 30-second auto-close timer
-            _autoCloseTimer = new System.Windows.Forms.Timer { Interval = 30000 };
+            // Setup the second auto-close timer
+            _autoCloseTimer = new System.Windows.Forms.Timer { Interval = autoCloseSeconds * 1000 };
             _autoCloseTimer.Tick += (s, e) => this.Close();
             _autoCloseTimer.Start();
         }
@@ -41,33 +44,24 @@ namespace AzeuServices_V1
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-            // Every time a new form loads, we tell ALL open forms to rearrange themselves
+            // Rearrange all forms whenever a new one is loaded
             RearrangeStacks();
         }
 
-        /// <summary>
-        /// This static method calculates the correct position for every open message.
-        /// It ensures they are perfectly stacked above each other.
-        /// </summary>
         private static void RearrangeStacks()
         {
             Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
 
-            // Base coordinates (where the first/newest message sits)
-            int baseX = workingArea.Right - 300 - 10; // 300 is form width
-            int baseY = workingArea.Bottom - 140 - 80; // 140 is form height, 80 is margin for countdown
+            // Base coordinates (where the first/bottom message sits)
+            int baseX = workingArea.Right - 300 - 10;
+            int baseY = workingArea.Bottom - 140 - 80; // Margin for Countdown Widget
 
-            // Loop through the list from newest to oldest
-            // We want the NEWEST (last in list) at the bottom, and OLDER ones above it.
+            // Rearrange from newest (bottom) to oldest (top)
             for (int i = 0; i < _activeForms.Count; i++)
             {
-                // Index from the end: the most recently added is index 0 for the loop logic
                 int positionFromBottom = _activeForms.Count - 1 - i;
+                int newY = baseY - (positionFromBottom * (140 + 10)); // 140 height + 10 margin
 
-                // Calculate Y: Start at bottom, and subtract (Height + 10px margin) for each step up
-                int newY = baseY - (positionFromBottom * (140 + 10));
-
-                // Update the location of the form
                 _activeForms[i].Location = new Point(baseX, newY);
             }
         }
@@ -77,25 +71,21 @@ namespace AzeuServices_V1
             this.Close();
         }
 
-        private void RemoteMessageForm_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
-
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            // Remove from tracking list
+            // Clean up tracking and rearrange remaining forms
             _activeForms.Remove(this);
-
-            // Reposition the remaining forms so they "drop down" into the empty space
             RearrangeStacks();
 
-            _autoCloseTimer?.Stop();
-            _autoCloseTimer?.Dispose();
+            if (_autoCloseTimer != null)
+            {
+                _autoCloseTimer.Stop();
+                _autoCloseTimer.Dispose();
+            }
             base.OnFormClosed(e);
         }
 
-        // --- DESIGNER CODE ---
+        // --- DESIGNER CODE (MODIFIED TO REMOVE CLICK-TO-CLOSE) ---
         private System.ComponentModel.IContainer components = null;
         private Label lblMessage;
         private Button btnOk;
@@ -132,7 +122,7 @@ namespace AzeuServices_V1
             this.lblMessage.Location = new Point(12, 35);
             this.lblMessage.Size = new Size(276, 60);
             this.lblMessage.TextAlign = ContentAlignment.TopLeft;
-            this.lblMessage.Click += new EventHandler(RemoteMessageForm_Click);
+            // Note: Click event removed from lblMessage
             // 
             // btnOk
             // 
@@ -154,7 +144,7 @@ namespace AzeuServices_V1
             this.Controls.Add(this.lblMessage);
             this.Controls.Add(this.lblHeader);
             this.StartPosition = FormStartPosition.Manual;
-            this.Click += new EventHandler(RemoteMessageForm_Click);
+            // Note: Click event removed from this (the Form)
             this.ResumeLayout(false);
         }
     }
