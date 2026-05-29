@@ -107,4 +107,4 @@ This application was developed by **Uelmark G. Valdehueza**.
 If you encounter bugs, errors, or require custom features, please contact the developer via the Facebook link provided in the application's "Developer's Notice" panel.
 
 ---
-*Copyright © 2024 Azeu Services. All Rights Reserved.*
+*Copyright © 2026 Azeu Services. All Rights Reserved.*
