@@ -303,15 +303,28 @@ namespace AzeuServices_V1
 
         private void saveSettingsBtn_Click(object sender, EventArgs e)
         {
-            if (newPasswordTextbox.Text.Length > 0)
+            // 1. If the new password fields are enabled, it means the current password was correct.
+            // We only validate the new password if the user actually typed something there.
+            if (newPasswordTextbox.Enabled && !string.IsNullOrEmpty(newPasswordTextbox.Text))
             {
-                if (currentPasswordTextbox.Text != lastSavedSettings.AdminPassword) { MessageBox.Show("Current password incorrect."); return; }
-                if (newPasswordTextbox.Text != confirmPasswordTextbox.Text) { MessageBox.Show("Passwords match error."); return; }
+                if (newPasswordTextbox.Text != confirmPasswordTextbox.Text)
+                {
+                    MessageBox.Show("New passwords do not match. Please try again.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
             }
+
+            // 2. Save the configuration to settings.json
             SaveConfig();
-            currentPasswordTextbox.Clear(); newPasswordTextbox.Clear(); confirmPasswordTextbox.Clear();
+
+            // 3. Reset the UI: Clear the current password to trigger the auto-lock
+            currentPasswordTextbox.Clear();
+            newPasswordTextbox.Clear();
+            confirmPasswordTextbox.Clear();
+
+            // 4. Update UI Status and Notify success
             UpdateSettingsStatus();
-            MessageBox.Show("Settings saved successfully!");
+            MessageBox.Show("Settings saved successfully!", "System Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void TryOpenFromTray()
@@ -554,7 +567,7 @@ namespace AzeuServices_V1
                 // No Smoking
                 noSmokingDialogCheckbox.Checked = lastSavedSettings.EnableNoSmoking;
 
-                // Remote Service (Crucial)
+                // Remote Service
                 remoteServiceCheckbox.Checked = lastSavedSettings.EnableRemoteService;
 
                 // Desktop Curfew (Closing)
@@ -574,6 +587,11 @@ namespace AzeuServices_V1
                 limitDesktopShowDialog10minCheckbox.Checked = lastSavedSettings.LimitShow10min;
                 limitDesktopShowDialog30minCheckbox.Checked = lastSavedSettings.LimitShow30min;
                 limitDesktopShutdownAfter3Minutes.Checked = lastSavedSettings.LimitShutdownAfter3Min;
+
+                // Clear password boxes on load to ensure they start in a locked state
+                currentPasswordTextbox.Clear();
+                newPasswordTextbox.Clear();
+                confirmPasswordTextbox.Clear();
 
                 // Final UI Sync
                 RefreshUIEnableState();
@@ -881,7 +899,7 @@ namespace AzeuServices_V1
             // 3. No Smoking Group
             viewNoSmokingDialog.Enabled = noSmokingDialogCheckbox.Checked;
 
-            // 4. Remote Service Group (NEW FIX)
+            // 4. Remote Service Group
             btnRemoteSettings.Enabled = remoteServiceCheckbox.Checked;
 
             // 5. Curfew Group
@@ -902,6 +920,22 @@ namespace AzeuServices_V1
             limitDesktopShowDialog10minCheckbox.Enabled = isCurfewEnabled;
             limitDesktopShowDialog30minCheckbox.Enabled = isCurfewEnabled;
             limitDesktopShutdownAfter3Minutes.Enabled = isCurfewEnabled;
+
+            // --- PASSWORD SECURITY SECTION ---
+            // Strictly check if the current password box matches the actual saved password
+            bool isPasswordCorrect = (!string.IsNullOrEmpty(currentPasswordTextbox.Text) && currentPasswordTextbox.Text == lastSavedSettings.AdminPassword);
+
+            // Set the enabled state of the new password fields based on the check above
+            newPasswordTextbox.Enabled = isPasswordCorrect;
+            confirmPasswordTextbox.Enabled = isPasswordCorrect;
+
+            // If the password is NOT correct, we must clear any text in the new/confirm boxes 
+            // to prevent someone from typing a new password, then deleting the 'current' password to hide it.
+            if (!isPasswordCorrect)
+            {
+                newPasswordTextbox.Clear();
+                confirmPasswordTextbox.Clear();
+            }
         }
 
         private void OnUIStateChanged(object sender, EventArgs e)
@@ -1071,7 +1105,14 @@ Loop";
 
         private void OnSettingChanged(object sender, EventArgs e) => UpdateSettingsStatus();
 
-        private void PasswordTextbox_TextChanged(object sender, EventArgs e) => UpdateSettingsStatus();
+        private void PasswordTextbox_TextChanged(object sender, EventArgs e)
+        {
+            // Trigger the master UI state check
+            RefreshUIEnableState();
+
+            // Notify the user if changes are detected
+            UpdateSettingsStatus();
+        }
 
         private void limitDesktopNumeric_KeyPress(object sender, KeyPressEventArgs e)
         {
@@ -1176,6 +1217,11 @@ Loop";
             {
                 cmb.Text = "00";
             }
+        }
+
+        private void currentPasswordTextbox_KeyPress(object sender, KeyPressEventArgs e)
+        {
+
         }
     }
 }

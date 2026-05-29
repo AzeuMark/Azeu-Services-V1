@@ -57,12 +57,15 @@
             limitDesktopHourOpenCombo = new ComboBox();
             limitDesktopMinCombo = new ComboBox();
             limitDesktopMinOpenCombo = new ComboBox();
+            label1 = new Label();
+            label3 = new Label();
+            label4 = new Label();
             SuspendLayout();
             // 
             // shutdownAFKCheckbox
             // 
             shutdownAFKCheckbox.AutoSize = true;
-            shutdownAFKCheckbox.Location = new Point(24, 91);
+            shutdownAFKCheckbox.Location = new Point(118, 277);
             shutdownAFKCheckbox.Name = "shutdownAFKCheckbox";
             shutdownAFKCheckbox.Size = new Size(114, 19);
             shutdownAFKCheckbox.TabIndex = 0;
@@ -72,30 +75,33 @@
             // 
             // suspiciousKeysLabel
             // 
-            suspiciousKeysLabel.AutoSize = true;
-            suspiciousKeysLabel.Location = new Point(48, 113);
+            suspiciousKeysLabel.Font = new Font("Segoe UI", 12F);
+            suspiciousKeysLabel.Location = new Point(190, 9);
             suspiciousKeysLabel.Name = "suspiciousKeysLabel";
-            suspiciousKeysLabel.Size = new Size(52, 15);
+            suspiciousKeysLabel.Size = new Size(46, 23);
             suspiciousKeysLabel.TabIndex = 1;
-            suspiciousKeysLabel.Text = "susLabel";
+            suspiciousKeysLabel.Text = "YES";
+            suspiciousKeysLabel.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // kboardStatusLabel
             // 
-            kboardStatusLabel.AutoSize = true;
-            kboardStatusLabel.Location = new Point(48, 128);
+            kboardStatusLabel.Font = new Font("Segoe UI", 12F);
+            kboardStatusLabel.Location = new Point(409, 11);
             kboardStatusLabel.Name = "kboardStatusLabel";
-            kboardStatusLabel.Size = new Size(92, 15);
+            kboardStatusLabel.Size = new Size(72, 21);
             kboardStatusLabel.TabIndex = 2;
-            kboardStatusLabel.Text = "Keyboard Status";
+            kboardStatusLabel.Text = "ACTIVE";
+            kboardStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // mouseStatusLabel
             // 
-            mouseStatusLabel.AutoSize = true;
-            mouseStatusLabel.Location = new Point(48, 143);
+            mouseStatusLabel.Font = new Font("Segoe UI", 12F);
+            mouseStatusLabel.Location = new Point(635, 11);
             mouseStatusLabel.Name = "mouseStatusLabel";
-            mouseStatusLabel.Size = new Size(78, 15);
+            mouseStatusLabel.Size = new Size(63, 21);
             mouseStatusLabel.TabIndex = 3;
-            mouseStatusLabel.Text = "Mouse Status";
+            mouseStatusLabel.Text = "ACTIVE";
+            mouseStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
             // 
             // countdownMinutesLabel
             // 
@@ -154,6 +160,7 @@
             currentPasswordTextbox.Size = new Size(180, 23);
             currentPasswordTextbox.TabIndex = 21;
             currentPasswordTextbox.TextChanged += PasswordTextbox_TextChanged;
+            currentPasswordTextbox.KeyPress += currentPasswordTextbox_KeyPress;
             // 
             // newPasswordTextbox
             // 
@@ -467,11 +474,48 @@
             limitDesktopMinOpenCombo.KeyPress += MinutesLimit_KeyPress;
             limitDesktopMinOpenCombo.Leave += MinutesLimit_Leave;
             // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label1.Location = new Point(12, 9);
+            label1.Name = "label1";
+            label1.Size = new Size(181, 21);
+            label1.TabIndex = 47;
+            label1.Text = "SUSPICIOUS ACTIVITY:";
+            label1.TextAlign = ContentAlignment.TopCenter;
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label3.Location = new Point(242, 11);
+            label3.Name = "label3";
+            label3.Size = new Size(172, 21);
+            label3.TabIndex = 49;
+            label3.Text = "KEYBOARD ACTIVITY:";
+            label3.TextAlign = ContentAlignment.TopCenter;
+            // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label4.Location = new Point(487, 11);
+            label4.Name = "label4";
+            label4.Size = new Size(145, 21);
+            label4.TabIndex = 50;
+            label4.Text = "MOUSE ACTIVITY:";
+            label4.TextAlign = ContentAlignment.TopCenter;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(880, 650);
+            Controls.Add(label4);
+            Controls.Add(label3);
+            Controls.Add(suspiciousKeysLabel);
+            Controls.Add(label1);
             Controls.Add(limitDesktopMinOpenCombo);
             Controls.Add(limitDesktopMinCombo);
             Controls.Add(limitDesktopHourOpenCombo);
@@ -508,7 +552,6 @@
             Controls.Add(countdownMinutesLabel);
             Controls.Add(mouseStatusLabel);
             Controls.Add(kboardStatusLabel);
-            Controls.Add(suspiciousKeysLabel);
             Controls.Add(shutdownAFKCheckbox);
             Controls.Add(afkWarningThresholdLabel);
             Controls.Add(afkWarningThresholdTextbox);
@@ -562,5 +605,8 @@
         private ComboBox limitDesktopHourOpenCombo;
         private ComboBox limitDesktopMinCombo;
         private ComboBox limitDesktopMinOpenCombo;
+        private Label label1;
+        private Label label3;
+        private Label label4;
     }
 }
