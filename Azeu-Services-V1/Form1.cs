@@ -785,8 +785,8 @@ namespace AzeuServices_V1
 
         private void ManageCountdownLogic()
         {
-            // If settings window is open, or widget is hidden, or AFK is off, kill everything.
-            if (this.Visible || !showCountdownCheckbox.Checked || isWidgetManuallyHidden || !shutdownAFKCheckbox.Checked)
+            // MASTER RULE: If the Anti-AFK feature is completely turned off, kill all timers and forms.
+            if (!shutdownAFKCheckbox.Checked)
             {
                 if (countdownWindow != null) { countdownWindow.AllowClose = true; countdownWindow.Close(); countdownWindow = null; }
                 if (activeAfkWarning != null) { activeAfkWarning.Close(); activeAfkWarning = null; }
@@ -794,30 +794,58 @@ namespace AzeuServices_V1
                 return;
             }
 
-            // 1. Manage the small Countdown HUD Widget
-            if (countdownWindow == null || countdownWindow.IsDisposed)
+            // 1. UI VISIBILITY LOGIC
+            // We only show the small Countdown HUD if: 
+            // - The Main Settings window is hidden
+            // - The "Show countdown dialog" checkbox is checked
+            // - The user hasn't manually hidden the widget via Tray/HUD menu
+            bool shouldShowHUD = !this.Visible && showCountdownCheckbox.Checked && !isWidgetManuallyHidden;
+
+            if (shouldShowHUD)
             {
-                countdownWindow = new CountdownForm();
-                countdownWindow.PositionBottomRight();
-                countdownWindow.OnRequestOpen = () => TryOpenFromTray();
-                countdownWindow.OnRequestToggle = () => ToggleWidgetManual();
-                countdownWindow.OnRequestExit = () => TryExitApp();
-                countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
-
-                if (countdownOpacityCheckbox.Checked)
+                if (countdownWindow == null || countdownWindow.IsDisposed)
                 {
-                    if (int.TryParse(countdownOpacityTextbox.Text, out int op))
-                        countdownWindow.ApplyOpacity(op);
-                }
-                else
-                {
-                    countdownWindow.ApplyOpacity(100);
-                }
+                    countdownWindow = new CountdownForm();
+                    countdownWindow.PositionBottomRight();
+                    countdownWindow.OnRequestOpen = () => TryOpenFromTray();
+                    countdownWindow.OnRequestToggle = () => ToggleWidgetManual();
+                    countdownWindow.OnRequestExit = () => TryExitApp();
+                    countdownWindow.TopMost = countdownTopMostCheckbox.Checked;
 
-                countdownWindow.Show();
+                    if (countdownOpacityCheckbox.Checked)
+                    {
+                        if (int.TryParse(countdownOpacityTextbox.Text, out int op))
+                            countdownWindow.ApplyOpacity(op);
+                    }
+                    else
+                    {
+                        countdownWindow.ApplyOpacity(100);
+                    }
+                    countdownWindow.Show();
+                }
+            }
+            else
+            {
+                // Hide the HUD but DO NOT return. Let the countdown logic below continue.
+                if (countdownWindow != null)
+                {
+                    countdownWindow.AllowClose = true;
+                    countdownWindow.Close();
+                    countdownWindow = null;
+                }
             }
 
-            // 2. Detection Logic
+            // 2. DETECTION & TIMER LOGIC
+            // Safety: If the Admin is currently looking at the settings (this.Visible), 
+            // we reset the timer so they don't get shut down while configuring.
+            if (this.Visible)
+            {
+                isCountingDown = false;
+                if (int.TryParse(countdownTextbox.Text, out int mins)) currentSecondsLeft = mins * 60;
+                if (activeAfkWarning != null) { activeAfkWarning.Close(); activeAfkWarning = null; }
+                return;
+            }
+
             bool isTriggered = (monitor.IsKbAfk && monitor.IsMouseAfk) ||
                                (monitor.IsKbSuspicious && monitor.IsMouseAfk) ||
                                (monitor.IsMouseClickSuspicious && monitor.IsKbAfk);
@@ -825,11 +853,14 @@ namespace AzeuServices_V1
             if (isTriggered)
             {
                 isCountingDown = true;
-                countdownWindow.SetAlertMode(true);
                 currentSecondsLeft--;
 
-                // --- DYNAMIC AFK WARNING DIALOG LOGIC ---
-                // Fetch threshold from UI. Default to 30 if parsing fails somehow.
+                // Update the HUD if it exists
+                if (countdownWindow != null) countdownWindow.SetAlertMode(true);
+
+                // --- DYNAMIC AFK WARNING DIALOG (The big red warning) ---
+                // This warning shows regardless of whether the small HUD is hidden 
+                // because it is a critical system alert.
                 if (!int.TryParse(afkWarningThresholdTextbox.Text, out int threshold)) threshold = 30;
 
                 if (currentSecondsLeft <= threshold && currentSecondsLeft > 0)
@@ -851,7 +882,7 @@ namespace AzeuServices_V1
             }
             else
             {
-                // NO LONGER AFK: Reset everything
+                // NO LONGER AFK: Reset the countdown and clean up warnings
                 isCountingDown = false;
 
                 if (int.TryParse(countdownTextbox.Text, out int minutes))
@@ -859,9 +890,8 @@ namespace AzeuServices_V1
                 else
                     currentSecondsLeft = lastSavedSettings.CountdownMinutes * 60;
 
-                countdownWindow.SetAlertMode(false);
+                if (countdownWindow != null) countdownWindow.SetAlertMode(false);
 
-                // Close warning automatically if movement detected
                 if (activeAfkWarning != null)
                 {
                     activeAfkWarning.Close();
@@ -870,6 +900,8 @@ namespace AzeuServices_V1
             }
 
             if (startupGraceSeconds > 0) startupGraceSeconds--;
+
+            // Update the HUD text if the window is currently active
             if (countdownWindow != null) countdownWindow.UpdateTime(currentSecondsLeft);
         }
 
