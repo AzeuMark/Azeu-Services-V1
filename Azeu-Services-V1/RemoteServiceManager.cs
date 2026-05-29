@@ -95,10 +95,17 @@ namespace AzeuServices_V1
             WriteLog("Identity handshake sent.");
         }
 
-        public async Task SendStatusUpdate(string countdownText)
+        // UPDATED: Now accepts uptimeText
+        public async Task SendStatusUpdate(string countdownText, string uptimeText)
         {
             if (_webSocket?.State != WebSocketState.Open) return;
-            var status = new { type = "STATUS_UPDATE", pc_name = Environment.MachineName, countdown = countdownText };
+            var status = new
+            {
+                type = "STATUS_UPDATE",
+                pc_name = Environment.MachineName,
+                countdown = countdownText,
+                uptime = uptimeText // Added this
+            };
             await SendString(JsonSerializer.Serialize(status));
         }
 
@@ -138,24 +145,17 @@ namespace AzeuServices_V1
                             OnRequestRestart?.Invoke("Remote Web Command");
                             break;
                         case "NAVIGATE":
-                            // --- NEW FEATURE: NAVIGATE TO URL ---
                             if (root.TryGetProperty("content", out JsonElement urlElement))
                             {
                                 string url = urlElement.GetString();
-                                if (!string.IsNullOrEmpty(url))
-                                {
-                                    NavigateToUrl(url);
-                                }
+                                if (!string.IsNullOrEmpty(url)) NavigateToUrl(url);
                             }
                             break;
                         case "MESSAGE":
                             if (root.TryGetProperty("content", out JsonElement msgElement))
                             {
                                 string messageText = msgElement.GetString();
-                                if (!string.IsNullOrEmpty(messageText))
-                                {
-                                    ShowRemoteMessage(messageText);
-                                }
+                                if (!string.IsNullOrEmpty(messageText)) ShowRemoteMessage(messageText);
                             }
                             break;
                     }
@@ -171,19 +171,11 @@ namespace AzeuServices_V1
         {
             try
             {
-                // Ensure UseShellExecute is true so it launches the default browser
-                ProcessStartInfo psi = new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                };
+                ProcessStartInfo psi = new ProcessStartInfo { FileName = url, UseShellExecute = true };
                 Process.Start(psi);
                 WriteLog("Remote Navigation Successful: " + url);
             }
-            catch (Exception ex)
-            {
-                WriteLog("Navigation Failed: " + ex.Message);
-            }
+            catch (Exception ex) { WriteLog("Navigation Failed: " + ex.Message); }
         }
 
         public async Task CaptureAndSendScreenshot()

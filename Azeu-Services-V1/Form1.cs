@@ -269,25 +269,36 @@ namespace AzeuServices_V1
             ManageCountdownLogic();
             UpdateSettingsStatus();
 
-            // --- NEW: REMOTE STATUS SYNC (EVERY SECOND) ---
+            // --- REMOTE STATUS SYNC (AFK + UPTIME) ---
             if (lastSavedSettings.EnableRemoteService)
             {
+                // 1. Format AFK Countdown string
                 string countdownText;
-
                 if (!lastSavedSettings.ShutdownIfAFK)
                 {
                     countdownText = "Turned OFF";
                 }
                 else
                 {
-                    // Convert currentSecondsLeft to MM:SS format
                     int mins = currentSecondsLeft / 60;
                     int secs = currentSecondsLeft % 60;
                     countdownText = string.Format("{0:00}:{1:00}", mins, secs);
                 }
 
-                // Send to WebSocket Manager without blocking UI thread
-                _ = RemoteServiceManager.Instance.SendStatusUpdate(countdownText);
+                // 2. Calculate System Uptime (CPU Uptime)
+                // Environment.TickCount64 gets the milliseconds since the system started
+                TimeSpan uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                string uptimeText;
+
+                // Format the uptime to look like Task Manager (e.g., 01d 02h 03m or 02h 03m 05s)
+                if (uptime.TotalDays >= 1)
+                    uptimeText = string.Format("{0}d {1:D2}h {2:D2}m", (int)uptime.TotalDays, uptime.Hours, uptime.Minutes);
+                else
+                    uptimeText = string.Format("{0:D2}h {1:D2}m {2:D2}s", uptime.Hours, uptime.Minutes, uptime.Seconds);
+
+                // 3. Send both pieces of data to the WebSocket Manager
+                // Note: We are now passing TWO arguments here
+                _ = RemoteServiceManager.Instance.SendStatusUpdate(countdownText, uptimeText);
             }
         }
 
