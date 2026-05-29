@@ -1012,29 +1012,52 @@ namespace AzeuServices_V1
 
         private void ManageWatchdog(bool enable)
         {
-            string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.vbs");
-            string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            string scriptPath = Path.Combine(appDir, "watchdog.vbs");
+            string stopSignalPath = Path.Combine(appDir, "watchdog.stop");
+
+            // This is our unique renamed scripting engine
+            string customWscriptPath = Path.Combine(appDir, "AzeuWatchdog.exe");
+            string systemWscript = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "wscript.exe");
+
+            // 1. Cleanup: Always try to kill any existing watchdog process first to prevent duplicates
+            try
+            {
+                foreach (var proc in Process.GetProcessesByName("AzeuWatchdog"))
+                {
+                    proc.Kill();
+                    proc.WaitForExit(1000);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error killing old watchdog: " + ex.Message);
+            }
 
             if (enable)
             {
                 try
                 {
-                    // Delete the stop signal if it exists so the watchdog can run
+                    // 2. Ensure our custom "AzeuWatchdog.exe" exists
+                    if (!File.Exists(customWscriptPath) && File.Exists(systemWscript))
+                    {
+                        File.Copy(systemWscript, customWscriptPath, true);
+                    }
+
+                    // 3. Remove stop signal so the script knows it's allowed to run
                     if (File.Exists(stopSignalPath)) File.Delete(stopSignalPath);
 
                     string exeName = Path.GetFileName(Application.ExecutablePath);
                     string exePath = Application.ExecutablePath;
 
-                    // NEW VBSCRIPT LOGIC: 
-                    // 1. Checks if 'watchdog.stop' exists.
-                    // 2. If it exists, the script deletes the stop file and exits immediately.
-                    // 3. Otherwise, it checks if the app is running.
+                    // 4. Create the VBScript content
+                    // The script checks if AzeuWatchdog.stop exists; if so, it deletes it and kills itself.
                     string vbsContent = $@"Set shell = CreateObject(""WScript.Shell"")
 Set fso = CreateObject(""Scripting.FileSystemObject"")
 stopFile = ""{stopSignalPath.Replace("\\", "\\\\")}""
 
 Do
-    ' Check if we were told to stop
+    ' Check if we were told to stop via the signal file
     If fso.FileExists(stopFile) Then
         fso.DeleteFile(stopFile)
         WScript.Quit
@@ -1049,18 +1072,19 @@ Do
     Next
     
     If Not running Then
-        ' Re-check stop file one last time before launching to prevent race condition
+        ' Final check for stop file to avoid launching during a legitimate exit
         If Not fso.FileExists(stopFile) Then
             shell.Run """"""{exePath}""""""
         End If
     End If
     
-    WScript.Sleep 2000 ' Faster check for more responsive exit
+    WScript.Sleep 3000 
 Loop";
 
                     File.WriteAllText(scriptPath, vbsContent);
 
-                    ProcessStartInfo psi = new ProcessStartInfo("wscript.exe")
+                    // 5. Start the script using our unique EXE name
+                    ProcessStartInfo psi = new ProcessStartInfo(customWscriptPath)
                     {
                         Arguments = $"\"{scriptPath}\"",
                         CreateNoWindow = true,
@@ -1068,8 +1092,6 @@ Loop";
                         WindowStyle = ProcessWindowStyle.Hidden
                     };
 
-                    // Ensure no old instances are running
-                    ExecuteSilentCommand("taskkill", "/F /IM wscript.exe /FI \"COMMANDLINE eq *watchdog.vbs*\"");
                     Process.Start(psi);
                 }
                 catch (Exception ex)
@@ -1079,21 +1101,11 @@ Loop";
             }
             else
             {
-                // DISABLE LOGIC: 
-                // 1. Create the stop signal file first.
-                // 2. The script will see this and exit on its own.
-                // 3. We also call taskkill as a backup.
+                // 6. Disable Logic: Create the signal file
                 try
                 {
                     File.WriteAllText(stopSignalPath, "STOP");
-
-                    ProcessStartInfo killOld = new ProcessStartInfo("taskkill", "/F /IM wscript.exe /FI \"COMMANDLINE eq *watchdog.vbs*\"")
-                    {
-                        CreateNoWindow = true,
-                        UseShellExecute = false
-                    };
-                    var proc = Process.Start(killOld);
-                    proc?.WaitForExit(2000); // Wait for watchdog to die
+                    // The killing of the process is already handled at the top of this function.
                 }
                 catch { }
             }
