@@ -383,25 +383,7 @@ namespace AzeuServices_V1
         {
             if (PasswordDialog.Authenticate())
             {
-                // 1. Tell the Watchdog to stop and wait for it
-                ManageWatchdog(false);
-
-                // 2. Small delay to ensure Windows handles the process termination
-                System.Threading.Thread.Sleep(500);
-
-                // 3. Clean up the App's tray icon and resources
-                UpdateAppState(false);
-                if (monitor != null) monitor.Stop();
-
-                if (trayIcon != null)
-                {
-                    trayIcon.Visible = false;
-                    trayIcon.Dispose();
-                }
-
-                // 4. Force terminate the application immediately.
-                // This stops all threads so the watchdog doesn't see a "zombie" process.
-                Environment.Exit(0);
+                FinalCleanupAndExit();
             }
         }
 
@@ -409,40 +391,31 @@ namespace AzeuServices_V1
         {
             if (e.CloseReason == CloseReason.UserClosing)
             {
-                // Check if changes exist by looking at the status label
                 if (settingStatusLabel.Text == "Settings not saved")
                 {
                     DialogResult result = MessageBox.Show("Save changes before closing?", "Unsaved Changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
-
                     if (result == DialogResult.Yes)
                     {
-                        // Trigger the save button logic
                         saveSettingsBtn_Click(this, EventArgs.Empty);
-
-                        // If saving failed (due to validation/password), cancel the close
                         if (settingStatusLabel.Text == "Settings not saved")
                         {
                             e.Cancel = true;
                             return;
                         }
                     }
-                    else if (result == DialogResult.No)
-                    {
-                        // REVERT: User clicked No. Reload settings from disk to reset UI and logic.
-                        LoadConfig();
-                    }
                     else if (result == DialogResult.Cancel)
                     {
-                        // Abort closing and stay on the settings screen
                         e.Cancel = true;
                         return;
                     }
+                    else if (result == DialogResult.No)
+                    {
+                        LoadConfig();
+                    }
                 }
 
-                // --- CLOSING / HIDING LOGIC ---
-
-                // Determine if we should minimize to tray normally
-                if (minimizeTrayCheckbox.Checked)
+                // Determine if we stay alive in tray or exit fully
+                if (minimizeTrayCheckbox.Checked || shutdownAFKCheckbox.Checked)
                 {
                     e.Cancel = true;
                     this.allowVisible = false;
@@ -451,57 +424,21 @@ namespace AzeuServices_V1
                     this.WindowState = FormWindowState.Minimized;
                     this.Hide();
 
-                    if (trayIcon != null) trayIcon.Visible = true;
-                    ManageCountdownLogic();
-                    return;
-                }
-
-                // If Minimize to Tray is OFF, check if AFK is active to determine if we should "Stealth"
-                if (shutdownAFKCheckbox.Checked)
-                {
-                    e.Cancel = true;
-                    this.allowVisible = false;
-                    this.Opacity = 0;
-                    this.ShowInTaskbar = false;
-                    this.WindowState = FormWindowState.Minimized;
-                    this.Hide();
-
-                    // Stealth mode: Keep alive but hide tray icon
-                    if (trayIcon != null) trayIcon.Visible = false;
+                    // If "Minimize to tray" is OFF but AFK is ON, we hide the tray icon (Stealth mode)
+                    if (trayIcon != null) trayIcon.Visible = minimizeTrayCheckbox.Checked;
 
                     ManageCountdownLogic();
                 }
                 else
                 {
-                    // AFK is OFF and Minimize to Tray is OFF: Exit completely
-                    string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
-                    try { File.WriteAllText(stopSignalPath, "STOP"); } catch { }
-
-                    ManageWatchdog(false);
-                    UpdateAppState(false);
-                    if (monitor != null) monitor.Stop();
-
-                    if (trayIcon != null)
-                    {
-                        trayIcon.Visible = false;
-                        trayIcon.Dispose();
-                    }
-
-                    SystemEvents.SessionEnding -= OnSystemSessionEnding;
-                    Environment.Exit(0);
+                    // Exit fully using the optimized cleanup
+                    FinalCleanupAndExit();
                 }
             }
             else
             {
-                // Handle OS Shutdown or Task Manager kills
-                string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
-                try { File.WriteAllText(stopSignalPath, "STOP"); } catch { }
-
-                ManageWatchdog(false);
-                UpdateAppState(false);
-                if (monitor != null) monitor.Stop();
-                if (trayIcon != null) trayIcon.Dispose();
-                SystemEvents.SessionEnding -= OnSystemSessionEnding;
+                // OS is shutting down or process is being killed externally
+                FinalCleanupAndExit();
             }
         }
 
@@ -1010,105 +947,110 @@ namespace AzeuServices_V1
 
         private void UpdateAppState(bool isActive) { lastSavedSettings.IsAppRunningState = isActive; AppSettings.Save(lastSavedSettings); }
 
+        private bool isProcessingWatchdog = false;
         private void ManageWatchdog(bool enable)
         {
-            string appDir = AppDomain.CurrentDomain.BaseDirectory;
-            string scriptPath = Path.Combine(appDir, "watchdog.vbs");
-            string stopSignalPath = Path.Combine(appDir, "watchdog.stop");
+            if (isProcessingWatchdog) return;
+            isProcessingWatchdog = true;
 
-            // This is our unique renamed scripting engine
-            string customWscriptPath = Path.Combine(appDir, "AzeuWatchdog.exe");
-            string systemWscript = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "wscript.exe");
-
-            // 1. Cleanup: Always try to kill any existing watchdog process first to prevent duplicates
-            try
-            {
-                foreach (var proc in Process.GetProcessesByName("AzeuWatchdog"))
-                {
-                    proc.Kill();
-                    proc.WaitForExit(1000);
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine("Error killing old watchdog: " + ex.Message);
-            }
-
-            if (enable)
+            Task.Run(() =>
             {
                 try
                 {
-                    // 2. Ensure our custom "AzeuWatchdog.exe" exists
-                    if (!File.Exists(customWscriptPath) && File.Exists(systemWscript))
+                    string appDir = AppDomain.CurrentDomain.BaseDirectory;
+                    string scriptPath = Path.Combine(appDir, "watchdog.vbs");
+                    string stopSignalPath = Path.Combine(appDir, "watchdog.stop");
+                    string customWscriptPath = Path.Combine(appDir, "AzeuWatchdog.exe");
+                    string systemWscript = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "wscript.exe");
+
+                    if (enable)
                     {
-                        File.Copy(systemWscript, customWscriptPath, true);
-                    }
+                        // Only kill and restart if we are ENABLING (to prevent multiple instances)
+                        using (Process killProc = new Process())
+                        {
+                            killProc.StartInfo.FileName = "taskkill";
+                            killProc.StartInfo.Arguments = "/F /IM AzeuWatchdog.exe /T";
+                            killProc.StartInfo.CreateNoWindow = true;
+                            killProc.StartInfo.UseShellExecute = false;
+                            killProc.Start();
+                            killProc.WaitForExit(500);
+                        }
 
-                    // 3. Remove stop signal so the script knows it's allowed to run
-                    if (File.Exists(stopSignalPath)) File.Delete(stopSignalPath);
+                        if (!File.Exists(customWscriptPath) && File.Exists(systemWscript))
+                            File.Copy(systemWscript, customWscriptPath, true);
 
-                    string exeName = Path.GetFileName(Application.ExecutablePath);
-                    string exePath = Application.ExecutablePath;
+                        if (File.Exists(stopSignalPath)) File.Delete(stopSignalPath);
 
-                    // 4. Create the VBScript content
-                    // The script checks if AzeuWatchdog.stop exists; if so, it deletes it and kills itself.
-                    string vbsContent = $@"Set shell = CreateObject(""WScript.Shell"")
+                        string exeName = Path.GetFileName(Application.ExecutablePath);
+                        string exePath = Application.ExecutablePath;
+                        string vbsContent = $@"Set shell = CreateObject(""WScript.Shell"")
 Set fso = CreateObject(""Scripting.FileSystemObject"")
 stopFile = ""{stopSignalPath.Replace("\\", "\\\\")}""
-
 Do
-    ' Check if we were told to stop via the signal file
     If fso.FileExists(stopFile) Then
         fso.DeleteFile(stopFile)
         WScript.Quit
     End If
-
     Set service = GetObject(""winmgmts:{{impersonationLevel=impersonate}}!\\.\root\cimv2"")
     Set processes = service.ExecQuery(""SELECT * FROM Win32_Process WHERE Name = '{exeName}'"")
-    
     running = False
     For Each process in processes
         running = True
     Next
-    
     If Not running Then
-        ' Final check for stop file to avoid launching during a legitimate exit
-        If Not fso.FileExists(stopFile) Then
-            shell.Run """"""{exePath}""""""
-        End If
+        If Not fso.FileExists(stopFile) Then shell.Run """"""{exePath}""""""
     End If
-    
     WScript.Sleep 3000 
 Loop";
 
-                    File.WriteAllText(scriptPath, vbsContent);
+                        if (!File.Exists(scriptPath) || File.ReadAllText(scriptPath) != vbsContent)
+                            File.WriteAllText(scriptPath, vbsContent);
 
-                    // 5. Start the script using our unique EXE name
-                    ProcessStartInfo psi = new ProcessStartInfo(customWscriptPath)
+                        ProcessStartInfo psi = new ProcessStartInfo(customWscriptPath)
+                        {
+                            Arguments = $"\"{scriptPath}\"",
+                            CreateNoWindow = true,
+                            UseShellExecute = false,
+                            WindowStyle = ProcessWindowStyle.Hidden
+                        };
+                        Process.Start(psi);
+                    }
+                    else
                     {
-                        Arguments = $"\"{scriptPath}\"",
-                        CreateNoWindow = true,
-                        UseShellExecute = false,
-                        WindowStyle = ProcessWindowStyle.Hidden
-                    };
-
-                    Process.Start(psi);
+                        // LIGHTWEIGHT DISABLE: Just drop the signal file. 
+                        // AzeuWatchdog.exe will see this file and close itself automatically within 3 seconds.
+                        // We avoid TaskKill here to prevent the "Cursor Freeze".
+                        File.WriteAllText(stopSignalPath, "STOP");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("Watchdog Start Error: " + ex.Message);
-                }
-            }
-            else
+                catch (Exception ex) { Debug.WriteLine("Watchdog Error: " + ex.Message); }
+                finally { isProcessingWatchdog = false; }
+            });
+        }
+        private void FinalCleanupAndExit()
+        {
+            // 1. Drop the stop signal immediately (Fastest I/O)
+            try
             {
-                // 6. Disable Logic: Create the signal file
-                try
-                {
-                    File.WriteAllText(stopSignalPath, "STOP");
-                    // The killing of the process is already handled at the top of this function.
-                }
-                catch { }
+                string stopSignalPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "watchdog.stop");
+                File.WriteAllText(stopSignalPath, "STOP");
             }
+            catch { }
+
+            // 2. Stop Hooks and UI components
+            if (monitor != null) monitor.Stop();
+
+            if (trayIcon != null)
+            {
+                trayIcon.Visible = false;
+                trayIcon.Dispose();
+            }
+
+            // 3. Update State
+            UpdateAppState(false);
+
+            // 4. Force Exit
+            Environment.Exit(0);
         }
 
         private void viewNoSmokingDialog_Click(object sender, EventArgs e)
