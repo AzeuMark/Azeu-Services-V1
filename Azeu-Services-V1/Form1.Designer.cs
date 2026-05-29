@@ -193,7 +193,7 @@
             // 
             newPasswordTextbox.Location = new Point(22, 86);
             newPasswordTextbox.Name = "newPasswordTextbox";
-            newPasswordTextbox.PlaceholderText = "Enter new password";
+            newPasswordTextbox.PlaceholderText = "Input here";
             newPasswordTextbox.Size = new Size(228, 23);
             newPasswordTextbox.TabIndex = 22;
             newPasswordTextbox.TextChanged += PasswordTextbox_TextChanged;
@@ -202,7 +202,7 @@
             // 
             confirmPasswordTextbox.Location = new Point(22, 132);
             confirmPasswordTextbox.Name = "confirmPasswordTextbox";
-            confirmPasswordTextbox.PlaceholderText = "Confirm new password";
+            confirmPasswordTextbox.PlaceholderText = "Input here";
             confirmPasswordTextbox.Size = new Size(228, 23);
             confirmPasswordTextbox.TabIndex = 23;
             confirmPasswordTextbox.TextChanged += PasswordTextbox_TextChanged;
