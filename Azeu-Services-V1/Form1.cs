@@ -1190,7 +1190,7 @@ Loop";
 
         private void MinutesLimit_KeyPress(object sender, KeyPressEventArgs e)
         {
-            ComboBox cmb = sender as ComboBox;
+            ComboBox? cmb = sender as ComboBox;
 
             if (char.IsDigit(e.KeyChar))
             {
@@ -1209,7 +1209,7 @@ Loop";
 
         private void MinutesLimit_Leave(object sender, EventArgs e)
         {
-            ComboBox cmb = sender as ComboBox;
+            ComboBox? cmb = sender as ComboBox;
             if (cmb == null) return;
 
             if (int.TryParse(cmb.Text, out int value))

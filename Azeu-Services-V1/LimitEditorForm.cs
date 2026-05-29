@@ -45,7 +45,8 @@ namespace AzeuServices_V1
                 if (ctrl is CheckBox chk) chk.CheckedChanged += (s, e) => UpdatePreview();
             }
 
-            btnSelectImage.Click += (s, e) => {
+            btnSelectImage.Click += (s, e) =>
+            {
                 using (OpenFileDialog ofd = new OpenFileDialog { Filter = "Images|*.jpg;*.png;*.bmp" })
                     if (ofd.ShowDialog() == DialogResult.OK) { txtImagePath.Text = ofd.FileName; UpdatePreview(); }
             };
@@ -190,6 +191,83 @@ namespace AzeuServices_V1
             temp.LimitShutdownAfter3Min = saved.LimitShutdownAfter3Min;
 
             using (LimitClosedForm test = new LimitClosedForm(temp, null, true)) { test.ShowDialog(); }
+        }
+
+        private void NumberLimit_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            TextBox? txtKP = sender as TextBox;
+            if (txtKP == null) return;
+
+            // Define limits per TextBox
+            int minValue = 0;
+            int maxValue = 0;
+
+            if (txtKP.Name == "txtFontSize" || txtKP.Name == "txtRetFontSize")
+            {
+                minValue = 0;
+                maxValue = 100;
+            }
+            else if (txtKP.Name == "txtRetMargin")
+            {
+                minValue = 0;
+                maxValue = 50;
+            }
+
+            if (char.IsDigit(e.KeyChar))
+            {
+                string potentialText = txtKP.Text + e.KeyChar;
+                if (int.TryParse(potentialText, out int value))
+                {
+                    if (value < minValue || value > maxValue)
+                        e.Handled = true;
+                }
+            }
+            else if (!char.IsControl(e.KeyChar))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void NumberLimit_Leave(object sender, EventArgs e)
+        {
+            TextBox? txt = sender as TextBox;
+            if (txt == null) return;
+
+            // Define limits per TextBox
+            int minValue = 0;
+            int maxValue = 0;
+            int defaultValue = 0;
+
+            if (txt.Name == "txtFontSize" || txt.Name == "txtRetFontSize")
+            {
+                minValue = 0;
+                maxValue = 100;
+                defaultValue = 0;
+            }
+            else if (txt.Name == "txtRetMargin")
+            {
+                minValue = 0;
+                maxValue = 50;
+                defaultValue = 0;
+            }
+
+            if (string.IsNullOrWhiteSpace(txt.Text))
+            {
+                txt.Text = defaultValue.ToString();
+            }
+            else if (int.TryParse(txt.Text, out int value))
+            {
+                if (value < minValue)
+                    txt.Text = minValue.ToString();
+                else if (value > maxValue)
+                    txt.Text = maxValue.ToString();
+                else
+                    txt.Text = value.ToString();
+            }
+            else
+            {
+                txt.Text = defaultValue.ToString();
+            }
         }
     }
 }

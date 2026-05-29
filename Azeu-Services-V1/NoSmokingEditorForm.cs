@@ -155,7 +155,12 @@ namespace AzeuServices_V1
             btnPreviewAction.Left = (pnlPreview.Width - btnPreviewAction.Width) / 2;
             btnPreviewAction.Top = pnlPreview.Height - (int)(bM * scaleFactor) - btnPreviewAction.Height;
 
-            btnPreviewAction.Font = new Font("Arial", bFS * scaleFactor, FontStyle.Bold);
+            
+
+            float totalScale = (bFS * scaleFactor);
+            if (totalScale < 1) totalScale = 1;
+
+            btnPreviewAction.Font = new Font("Arial", totalScale, FontStyle.Bold);
             btnPreviewAction.Invalidate();
         }
 
@@ -221,6 +226,111 @@ namespace AzeuServices_V1
         private void btnFullScreen_Click(object sender, EventArgs e)
         {
             RunFullScreenTest();
+        }
+
+        private void NumberLimit_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            TextBox txt = sender as TextBox;
+            if (txt == null) return;
+
+            // Define limits per TextBox
+            int maxValue = 0;
+
+            switch (txt.Name)
+            {
+                case "txtFontSize":
+                case "txtBtnFontSize":
+                    maxValue = 100;
+                    break;
+                case "txtBtnWidth":
+                case "txtBtnHeight":
+                    maxValue = 900;
+                    break;
+                case "txtBtnRadius":
+                    maxValue = 50;
+                    break;
+                case "txtBtnMargin":
+                    maxValue = 100;
+                    break;
+                case "txtDuration":
+                    maxValue = 30;
+                    break;
+                default:
+                    return;
+            }
+
+            if (char.IsDigit(e.KeyChar))
+            {
+                string potentialText = txt.Text + e.KeyChar;
+                if (int.TryParse(potentialText, out int value))
+                {
+                    // ONLY block if exceeds max (allow numbers below min while typing)
+                    if (value > maxValue)
+                        e.Handled = true;
+                }
+            }
+            else if (!char.IsControl(e.KeyChar))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void NumberLimit_Leave(object sender, EventArgs e)
+        {
+            TextBox txt = sender as TextBox;
+            if (txt == null) return;
+
+            // Define limits per TextBox
+            int minValue = 0;
+            int maxValue = 0;
+            int defaultValue = 0;
+
+            switch (txt.Name)
+            {
+                case "txtFontSize":
+                    minValue = 0; maxValue = 100; defaultValue = 0;
+                    break;
+                case "txtBtnFontSize":
+                    minValue = 0; maxValue = 100; defaultValue = 0;
+                    break;
+                case "txtBtnWidth":
+                    minValue = 50; maxValue = 900; defaultValue = 300;
+                    break;
+                case "txtBtnHeight":
+                    minValue = 50; maxValue = 900; defaultValue = 100;
+                    break;
+                case "txtBtnRadius":
+                    minValue = 0; maxValue = 50; defaultValue = 8;
+                    break;
+                case "txtBtnMargin":
+                    minValue = 0; maxValue = 100; defaultValue = 20;
+                    break;
+                case "txtDuration":
+                    minValue = 0; maxValue = 30; defaultValue = 5;
+                    break;
+                default:
+                    return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txt.Text))
+            {
+                txt.Text = defaultValue.ToString();
+                return;
+            }
+
+            if (int.TryParse(txt.Text, out int value))
+            {
+                if (value < minValue)
+                    txt.Text = minValue.ToString();
+                else if (value > maxValue)
+                    txt.Text = maxValue.ToString();
+                else
+                    txt.Text = value.ToString();
+            }
+            else
+            {
+                txt.Text = defaultValue.ToString();
+            }
         }
     }
 }

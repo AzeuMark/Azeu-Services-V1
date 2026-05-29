@@ -162,7 +162,7 @@
             grpReturning.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             grpReturning.Location = new Point(10, 281);
             grpReturning.Name = "grpReturning";
-            grpReturning.Size = new Size(300, 166);
+            grpReturning.Size = new Size(300, 125);
             grpReturning.TabIndex = 1;
             grpReturning.TabStop = false;
             grpReturning.Text = "2. Returning Time Styles";
@@ -170,15 +170,18 @@
             // txtRetMargin
             // 
             txtRetMargin.Font = new Font("Segoe UI", 9F);
-            txtRetMargin.Location = new Point(155, 134);
+            txtRetMargin.Location = new Point(155, 90);
+            txtRetMargin.MaxLength = 3;
             txtRetMargin.Name = "txtRetMargin";
             txtRetMargin.Size = new Size(130, 23);
             txtRetMargin.TabIndex = 9;
+            txtRetMargin.KeyPress += NumberLimit_KeyPress;
+            txtRetMargin.Leave += NumberLimit_Leave;
             // 
             // label9
             // 
             label9.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            label9.Location = new Point(155, 116);
+            label9.Location = new Point(155, 72);
             label9.Name = "label9";
             label9.Size = new Size(130, 15);
             label9.TabIndex = 8;
@@ -197,9 +200,12 @@
             // 
             txtRetFontSize.Font = new Font("Segoe UI", 9F);
             txtRetFontSize.Location = new Point(155, 40);
+            txtRetFontSize.MaxLength = 3;
             txtRetFontSize.Name = "txtRetFontSize";
             txtRetFontSize.Size = new Size(130, 23);
             txtRetFontSize.TabIndex = 3;
+            txtRetFontSize.KeyPress += NumberLimit_KeyPress;
+            txtRetFontSize.Leave += NumberLimit_Leave;
             // 
             // cmbRetTextColor
             // 
@@ -207,7 +213,7 @@
             cmbRetTextColor.Font = new Font("Segoe UI", 9F);
             cmbRetTextColor.Location = new Point(10, 90);
             cmbRetTextColor.Name = "cmbRetTextColor";
-            cmbRetTextColor.Size = new Size(275, 23);
+            cmbRetTextColor.Size = new Size(130, 23);
             cmbRetTextColor.TabIndex = 5;
             // 
             // label2
@@ -294,6 +300,7 @@
             // 
             txtMessage.Font = new Font("Segoe UI", 9F);
             txtMessage.Location = new Point(10, 43);
+            txtMessage.MaxLength = 40;
             txtMessage.Multiline = true;
             txtMessage.Name = "txtMessage";
             txtMessage.Size = new Size(280, 45);
@@ -312,9 +319,12 @@
             // 
             txtFontSize.Font = new Font("Segoe UI", 9F);
             txtFontSize.Location = new Point(155, 118);
+            txtFontSize.MaxLength = 3;
             txtFontSize.Name = "txtFontSize";
             txtFontSize.Size = new Size(130, 23);
             txtFontSize.TabIndex = 5;
+            txtFontSize.KeyPress += NumberLimit_KeyPress;
+            txtFontSize.Leave += NumberLimit_Leave;
             // 
             // cmbBgColor
             // 
@@ -381,7 +391,7 @@
             // 
             // btnFullScreen
             // 
-            btnFullScreen.Location = new Point(10, 566);
+            btnFullScreen.Location = new Point(10, 527);
             btnFullScreen.Name = "btnFullScreen";
             btnFullScreen.Size = new Size(300, 30);
             btnFullScreen.TabIndex = 4;
@@ -392,7 +402,7 @@
             btnSave.BackColor = Color.Green;
             btnSave.FlatStyle = FlatStyle.Flat;
             btnSave.ForeColor = Color.White;
-            btnSave.Location = new Point(10, 601);
+            btnSave.Location = new Point(10, 562);
             btnSave.Name = "btnSave";
             btnSave.Size = new Size(145, 30);
             btnSave.TabIndex = 5;
@@ -404,7 +414,7 @@
             btnCancel.BackColor = Color.Gray;
             btnCancel.FlatStyle = FlatStyle.Flat;
             btnCancel.ForeColor = Color.White;
-            btnCancel.Location = new Point(165, 601);
+            btnCancel.Location = new Point(165, 562);
             btnCancel.Name = "btnCancel";
             btnCancel.Size = new Size(145, 30);
             btnCancel.TabIndex = 6;
@@ -418,7 +428,7 @@
             grpImage.Controls.Add(label15);
             grpImage.Controls.Add(btnSelectImage);
             grpImage.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            grpImage.Location = new Point(10, 451);
+            grpImage.Location = new Point(10, 412);
             grpImage.Name = "grpImage";
             grpImage.Size = new Size(300, 110);
             grpImage.TabIndex = 2;
@@ -440,7 +450,7 @@
             txtImagePath.Location = new Point(10, 25);
             txtImagePath.Name = "txtImagePath";
             txtImagePath.ReadOnly = true;
-            txtImagePath.Size = new Size(245, 23);
+            txtImagePath.Size = new Size(228, 23);
             txtImagePath.TabIndex = 3;
             // 
             // label15
@@ -456,11 +466,11 @@
             // btnSelectImage
             // 
             btnSelectImage.Font = new Font("Segoe UI", 9F);
-            btnSelectImage.Location = new Point(260, 25);
+            btnSelectImage.Location = new Point(244, 25);
             btnSelectImage.Name = "btnSelectImage";
-            btnSelectImage.Size = new Size(30, 23);
+            btnSelectImage.Size = new Size(46, 23);
             btnSelectImage.TabIndex = 2;
-            btnSelectImage.Text = "...";
+            btnSelectImage.Text = "Select";
             // 
             // LimitEditorForm
             // 

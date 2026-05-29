@@ -155,6 +155,7 @@
             // 
             txtMessage.Font = new Font("Segoe UI", 9F);
             txtMessage.Location = new Point(10, 43);
+            txtMessage.MaxLength = 100;
             txtMessage.Multiline = true;
             txtMessage.Name = "txtMessage";
             txtMessage.Size = new Size(280, 45);
@@ -173,9 +174,12 @@
             // 
             txtFontSize.Font = new Font("Segoe UI", 9F);
             txtFontSize.Location = new Point(155, 118);
+            txtFontSize.MaxLength = 3;
             txtFontSize.Name = "txtFontSize";
             txtFontSize.Size = new Size(130, 23);
             txtFontSize.TabIndex = 5;
+            txtFontSize.KeyPress += NumberLimit_KeyPress;
+            txtFontSize.Leave += NumberLimit_Leave;
             // 
             // cmbBgColor
             // 
@@ -277,9 +281,12 @@
             // 
             txtDuration.Font = new Font("Segoe UI", 9F);
             txtDuration.Location = new Point(10, 43);
+            txtDuration.MaxLength = 2;
             txtDuration.Name = "txtDuration";
             txtDuration.Size = new Size(280, 23);
             txtDuration.TabIndex = 1;
+            txtDuration.KeyPress += NumberLimit_KeyPress;
+            txtDuration.Leave += NumberLimit_Leave;
             // 
             // label10
             // 
@@ -332,6 +339,7 @@
             // 
             txtButtonText.Font = new Font("Segoe UI", 9F);
             txtButtonText.Location = new Point(10, 43);
+            txtButtonText.MaxLength = 15;
             txtButtonText.Name = "txtButtonText";
             txtButtonText.Size = new Size(280, 23);
             txtButtonText.TabIndex = 1;
@@ -340,25 +348,34 @@
             // 
             txtBtnWidth.Font = new Font("Segoe UI", 9F);
             txtBtnWidth.Location = new Point(10, 98);
+            txtBtnWidth.MaxLength = 3;
             txtBtnWidth.Name = "txtBtnWidth";
             txtBtnWidth.Size = new Size(80, 23);
             txtBtnWidth.TabIndex = 3;
+            txtBtnWidth.KeyPress += NumberLimit_KeyPress;
+            txtBtnWidth.Leave += NumberLimit_Leave;
             // 
             // txtBtnHeight
             // 
             txtBtnHeight.Font = new Font("Segoe UI", 9F);
             txtBtnHeight.Location = new Point(105, 98);
+            txtBtnHeight.MaxLength = 3;
             txtBtnHeight.Name = "txtBtnHeight";
             txtBtnHeight.Size = new Size(80, 23);
             txtBtnHeight.TabIndex = 5;
+            txtBtnHeight.KeyPress += NumberLimit_KeyPress;
+            txtBtnHeight.Leave += NumberLimit_Leave;
             // 
             // txtBtnFontSize
             // 
             txtBtnFontSize.Font = new Font("Segoe UI", 9F);
             txtBtnFontSize.Location = new Point(200, 98);
+            txtBtnFontSize.MaxLength = 3;
             txtBtnFontSize.Name = "txtBtnFontSize";
             txtBtnFontSize.Size = new Size(80, 23);
             txtBtnFontSize.TabIndex = 7;
+            txtBtnFontSize.KeyPress += NumberLimit_KeyPress;
+            txtBtnFontSize.Leave += NumberLimit_Leave;
             // 
             // cmbBtnBgColor
             // 
@@ -382,17 +399,23 @@
             // 
             txtBtnRadius.Font = new Font("Segoe UI", 9F);
             txtBtnRadius.Location = new Point(10, 213);
+            txtBtnRadius.MaxLength = 3;
             txtBtnRadius.Name = "txtBtnRadius";
             txtBtnRadius.Size = new Size(130, 23);
             txtBtnRadius.TabIndex = 13;
+            txtBtnRadius.KeyPress += NumberLimit_KeyPress;
+            txtBtnRadius.Leave += NumberLimit_Leave;
             // 
             // txtBtnMargin
             // 
             txtBtnMargin.Font = new Font("Segoe UI", 9F);
             txtBtnMargin.Location = new Point(155, 213);
+            txtBtnMargin.MaxLength = 3;
             txtBtnMargin.Name = "txtBtnMargin";
             txtBtnMargin.Size = new Size(130, 23);
             txtBtnMargin.TabIndex = 15;
+            txtBtnMargin.KeyPress += NumberLimit_KeyPress;
+            txtBtnMargin.Leave += NumberLimit_Leave;
             // 
             // label2
             // 
@@ -495,7 +518,7 @@
             txtImagePath.Location = new Point(10, 25);
             txtImagePath.Name = "txtImagePath";
             txtImagePath.ReadOnly = true;
-            txtImagePath.Size = new Size(245, 23);
+            txtImagePath.Size = new Size(225, 23);
             txtImagePath.TabIndex = 3;
             // 
             // label15
@@ -511,11 +534,11 @@
             // btnSelectImage
             // 
             btnSelectImage.Font = new Font("Segoe UI", 9F);
-            btnSelectImage.Location = new Point(260, 25);
+            btnSelectImage.Location = new Point(241, 25);
             btnSelectImage.Name = "btnSelectImage";
-            btnSelectImage.Size = new Size(30, 23);
+            btnSelectImage.Size = new Size(49, 23);
             btnSelectImage.TabIndex = 2;
-            btnSelectImage.Text = "...";
+            btnSelectImage.Text = "Select";
             // 
             // NoSmokingEditorForm
             // 
