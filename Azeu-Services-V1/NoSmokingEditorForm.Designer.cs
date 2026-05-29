@@ -546,6 +546,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1063, 421);
             Controls.Add(splitContainer1);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
             MinimumSize = new Size(1000, 400);
             Name = "NoSmokingEditorForm";
             StartPosition = FormStartPosition.CenterScreen;

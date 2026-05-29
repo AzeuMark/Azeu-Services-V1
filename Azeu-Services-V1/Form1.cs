@@ -257,18 +257,22 @@ namespace AzeuServices_V1
         private void UiTimer_Tick(object? sender, EventArgs e)
         {
             monitor.Update();
-            kboardStatusLabel.Text = monitor.IsKbAfk ? "Keyboard: AFK" : "Keyboard: Active";
-            mouseStatusLabel.Text = monitor.IsMouseAfk ? "Mouse: AFK" : "Mouse: Active";
+            kboardStatusLabel.Text = monitor.IsKbAfk ? "AFK" : "Active";
+            mouseStatusLabel.Text = monitor.IsMouseAfk ? "AFK" : "Active";
+
+            kboardStatusLabel.ForeColor = monitor.IsKbAfk ? Color.Red : Color.Green;
+            mouseStatusLabel.ForeColor = monitor.IsMouseAfk ? Color.Red : Color.Green;
+
 
             if (monitor.IsSuspicious)
             {
-                suspiciousKeysLabel.Text = "Status: Suspicious";
+                suspiciousKeysLabel.Text = "Yes";
                 suspiciousKeysLabel.ForeColor = Color.Red;
             }
             else
             {
-                suspiciousKeysLabel.Text = "Status: Normal";
-                suspiciousKeysLabel.ForeColor = Color.Black;
+                suspiciousKeysLabel.Text = "Normal";
+                suspiciousKeysLabel.ForeColor = Color.Green;
             }
 
             CheckDesktopLimit();
@@ -605,7 +609,7 @@ namespace AzeuServices_V1
         {
             if (limitDesktopAMorPMComboBox.Items.Count == 0) limitDesktopAMorPMComboBox.Items.AddRange(new object[] { "AM", "PM" });
             if (limitDesktopOpenAMorPMComboBox.Items.Count == 0) limitDesktopOpenAMorPMComboBox.Items.AddRange(new object[] { "AM", "PM" });
-            if (limitDesktopActionComboBox.Items.Count == 0) limitDesktopActionComboBox.Items.AddRange(new object[] { "Shutdown", "Show Image Dialog" });
+            if (limitDesktopActionComboBox.Items.Count == 0) limitDesktopActionComboBox.Items.AddRange(new object[] { "Shutdown", "Show Image" });
         }
 
         private void SetStartup(bool start)
@@ -912,7 +916,7 @@ namespace AzeuServices_V1
             limitDesktopOpenAMorPMComboBox.Enabled = isCurfewEnabled;
             limitDesktopActionComboBox.Enabled = isCurfewEnabled;
 
-            bool isImageAction = limitDesktopActionComboBox.Text == "Show Image Dialog";
+            bool isImageAction = limitDesktopActionComboBox.Text == "Show Image";
             bool enableImageControls = isCurfewEnabled && isImageAction;
             viewLimitDesktopActionDialogBtn.Enabled = enableImageControls;
 
@@ -1219,8 +1223,20 @@ Loop";
             }
         }
 
-        private void currentPasswordTextbox_KeyPress(object sender, KeyPressEventArgs e)
+
+        private void facebookUrlLinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
+            string url = "https://www.facebook.com/azeu.dev";
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch
+            {
+                MessageBox.Show("Unable to open browser", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
 
         }
     }
