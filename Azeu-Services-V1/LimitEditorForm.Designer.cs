@@ -17,6 +17,7 @@
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LimitEditorForm));
             splitContainer1 = new SplitContainer();
             pnlPreview = new Panel();
             lblPreviewReturning = new Label();
@@ -479,6 +480,7 @@
             ClientSize = new Size(1063, 421);
             Controls.Add(splitContainer1);
             FormBorderStyle = FormBorderStyle.FixedSingle;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             MinimumSize = new Size(1000, 400);
             Name = "LimitEditorForm";
             StartPosition = FormStartPosition.CenterScreen;

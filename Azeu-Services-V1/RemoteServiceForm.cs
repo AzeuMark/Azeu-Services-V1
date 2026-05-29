@@ -184,88 +184,120 @@ namespace AzeuServices_V1
 
         private void InitializeComponent()
         {
-            this.txtUrl = new TextBox();
-            this.txtToken = new TextBox();
-            this.lblStatus = new Label();
-            this.txtLogs = new RichTextBox();
-            this.btnSave = new Button();
-            this.btnTest = new Button();
-            this.btnClearView = new Button();
-            this.label1 = new Label();
-            this.label2 = new Label();
-            this.SuspendLayout();
-            // 
-            // label1
-            // 
-            this.label1.Text = "WebSocket URL:";
-            this.label1.Location = new Point(20, 20);
-            this.label1.AutoSize = true;
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(RemoteServiceForm));
+            txtUrl = new TextBox();
+            txtToken = new TextBox();
+            lblStatus = new Label();
+            txtLogs = new RichTextBox();
+            btnSave = new Button();
+            btnTest = new Button();
+            btnClearView = new Button();
+            label1 = new Label();
+            label2 = new Label();
+            SuspendLayout();
             // 
             // txtUrl
             // 
-            this.txtUrl.Location = new Point(20, 40);
-            this.txtUrl.Width = 340;
-            // 
-            // label2
-            // 
-            this.label2.Text = "Security Token:";
-            this.label2.Location = new Point(20, 75);
-            this.label2.AutoSize = true;
+            txtUrl.Location = new Point(20, 40);
+            txtUrl.Name = "txtUrl";
+            txtUrl.Size = new Size(340, 23);
+            txtUrl.TabIndex = 1;
             // 
             // txtToken
             // 
-            this.txtToken.Location = new Point(20, 95);
-            this.txtToken.Width = 340;
+            txtToken.Location = new Point(20, 95);
+            txtToken.Name = "txtToken";
+            txtToken.Size = new Size(340, 23);
+            txtToken.TabIndex = 3;
             // 
             // lblStatus
             // 
-            this.lblStatus.Text = "Status: Disconnected";
-            this.lblStatus.Location = new Point(20, 130);
-            this.lblStatus.ForeColor = Color.DarkBlue;
-            this.lblStatus.Width = 300;
+            lblStatus.ForeColor = Color.DarkBlue;
+            lblStatus.Location = new Point(20, 130);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(300, 23);
+            lblStatus.TabIndex = 4;
+            lblStatus.Text = "Status: Disconnected";
             // 
             // txtLogs
             // 
-            this.txtLogs.Location = new Point(20, 160);
-            this.txtLogs.Size = new Size(340, 155);
-            this.txtLogs.ReadOnly = true;
-            this.txtLogs.BackColor = Color.Black;
-            this.txtLogs.ForeColor = Color.Lime;
-            this.txtLogs.Font = new Font("Consolas", 8F);
-            // 
-            // btnClearView
-            // 
-            this.btnClearView.Text = "Clear Log View";
-            this.btnClearView.Location = new Point(20, 320);
-            this.btnClearView.Width = 340;
-            this.btnClearView.Click += new EventHandler(btnClearView_Click);
-            // 
-            // btnTest
-            // 
-            this.btnTest.Text = "Test Connection";
-            this.btnTest.Location = new Point(20, 360);
-            this.btnTest.Width = 120;
-            this.btnTest.Click += new EventHandler(btnTest_Click);
+            txtLogs.BackColor = Color.Black;
+            txtLogs.Font = new Font("Consolas", 8F);
+            txtLogs.ForeColor = Color.Lime;
+            txtLogs.Location = new Point(20, 160);
+            txtLogs.Name = "txtLogs";
+            txtLogs.ReadOnly = true;
+            txtLogs.Size = new Size(340, 155);
+            txtLogs.TabIndex = 5;
+            txtLogs.Text = "";
             // 
             // btnSave
             // 
-            this.btnSave.Text = "Save Credentials";
-            this.btnSave.Location = new Point(240, 360);
-            this.btnSave.Width = 120;
-            this.btnSave.Click += new EventHandler(btnSave_Click);
+            btnSave.Location = new Point(240, 360);
+            btnSave.Name = "btnSave";
+            btnSave.Size = new Size(120, 23);
+            btnSave.TabIndex = 8;
+            btnSave.Text = "Save Credentials";
+            btnSave.Click += btnSave_Click;
+            // 
+            // btnTest
+            // 
+            btnTest.Location = new Point(20, 360);
+            btnTest.Name = "btnTest";
+            btnTest.Size = new Size(120, 23);
+            btnTest.TabIndex = 7;
+            btnTest.Text = "Test Connection";
+            btnTest.Click += btnTest_Click;
+            // 
+            // btnClearView
+            // 
+            btnClearView.Location = new Point(20, 320);
+            btnClearView.Name = "btnClearView";
+            btnClearView.Size = new Size(340, 23);
+            btnClearView.TabIndex = 6;
+            btnClearView.Text = "Clear Log View";
+            btnClearView.Click += btnClearView_Click;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(20, 20);
+            label1.Name = "label1";
+            label1.Size = new Size(93, 15);
+            label1.TabIndex = 0;
+            label1.Text = "WebSocket URL:";
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(20, 75);
+            label2.Name = "label2";
+            label2.Size = new Size(86, 15);
+            label2.TabIndex = 2;
+            label2.Text = "Security Token:";
             // 
             // RemoteServiceForm
             // 
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(385, 410);
-            this.Text = "Remote Credentials";
-            this.Controls.AddRange(new Control[] { label1, txtUrl, label2, txtToken, lblStatus, txtLogs, btnClearView, btnTest, btnSave });
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(385, 410);
+            Controls.Add(label1);
+            Controls.Add(txtUrl);
+            Controls.Add(label2);
+            Controls.Add(txtToken);
+            Controls.Add(lblStatus);
+            Controls.Add(txtLogs);
+            Controls.Add(btnClearView);
+            Controls.Add(btnTest);
+            Controls.Add(btnSave);
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            MaximizeBox = false;
+            Name = "RemoteServiceForm";
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "Remote Credentials";
+            ResumeLayout(false);
+            PerformLayout();
         }
     }
 }

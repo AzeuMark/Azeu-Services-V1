@@ -59,7 +59,7 @@ namespace AzeuServices_V1
 
         public void SetAlertMode(bool isAlert)
         {
-            this.BackColor = isAlert ? Color.Red : Color.FromArgb(45, 45, 48);
+            this.BackColor = isAlert ? Color.Red : Color.Snow;
         }
 
         public void ApplyOpacity(int percent)

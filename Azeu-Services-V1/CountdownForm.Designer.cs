@@ -60,13 +60,13 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.Snow;
             ClientSize = new Size(149, 59);
             Controls.Add(label1);
             Controls.Add(lblTimer);
             FormBorderStyle = FormBorderStyle.None;
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "CountdownForm";
-            ShowIcon = false;
             Text = "CountdownForm";
             ResumeLayout(false);
         }
