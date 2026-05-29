@@ -420,6 +420,7 @@ namespace AzeuServices_V1
 
         private void OnFormClosing(object sender, FormClosingEventArgs e)
         {
+            lastSavedSettings.LastBypassDate = null;
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 if (settingStatusLabel.Text == "Settings not saved")
