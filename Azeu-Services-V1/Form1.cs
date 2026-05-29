@@ -490,6 +490,7 @@ namespace AzeuServices_V1
 
             var newSettings = new AppSettings
             {
+                // 1. Basics & AFK
                 ShutdownIfAFK = shutdownAFKCheckbox.Checked,
                 CountdownMinutes = minutes,
                 AfkWarningThreshold = warningSecs,
@@ -498,13 +499,31 @@ namespace AzeuServices_V1
                 EnableOpacity = countdownOpacityCheckbox.Checked,
                 CountdownOpacity = opacity,
 
+                // 2. No Smoking (UI toggles + PRESERVING EDITOR SETTINGS)
                 EnableNoSmoking = noSmokingDialogCheckbox.Checked,
-                EnableRemoteService = remoteServiceCheckbox.Checked, // NEW FIX
+                NoSmokingMessage = lastSavedSettings.NoSmokingMessage,
+                NoSmokingButtonText = lastSavedSettings.NoSmokingButtonText,
+                NoSmokingFontSize = lastSavedSettings.NoSmokingFontSize,
+                NoSmokingBgColor = lastSavedSettings.NoSmokingBgColor,
+                NoSmokingTextColor = lastSavedSettings.NoSmokingTextColor,
+                NoSmokingButtonRadius = lastSavedSettings.NoSmokingButtonRadius,
+                NoSmokingDuration = lastSavedSettings.NoSmokingDuration,
+                NoSmokingButtonBgColor = lastSavedSettings.NoSmokingButtonBgColor,
+                NoSmokingButtonTextColor = lastSavedSettings.NoSmokingButtonTextColor,
+                NoSmokingFontFamily = lastSavedSettings.NoSmokingFontFamily,
+                NoSmokingButtonBottomMargin = lastSavedSettings.NoSmokingButtonBottomMargin,
+                NoSmokingButtonWidth = lastSavedSettings.NoSmokingButtonWidth,
+                NoSmokingButtonHeight = lastSavedSettings.NoSmokingButtonHeight,
+                NoSmokingButtonFontSize = lastSavedSettings.NoSmokingButtonFontSize,
+                NoSmokingImagePath = lastSavedSettings.NoSmokingImagePath, // THE FIX: Preserve Image Path
+                NoSmokingImageSizeMode = lastSavedSettings.NoSmokingImageSizeMode, // THE FIX: Preserve Size Mode
 
-                // Preserve your specific WebSocket settings
+                // 3. Remote Service (Preserving URL and Token)
+                EnableRemoteService = remoteServiceCheckbox.Checked,
                 WebSocketUrl = lastSavedSettings.WebSocketUrl,
                 WebSocketToken = lastSavedSettings.WebSocketToken,
 
+                // 4. Desktop Curfew (UI settings + PRESERVING EDITOR SETTINGS)
                 LimitDesktopUsage = limitDesktopUsageCheckbox.Checked,
                 LimitDesktopHour = limitDesktopHourCombo.Text,
                 LimitDesktopMin = limitDesktopMinCombo.Text,
@@ -530,19 +549,25 @@ namespace AzeuServices_V1
                 LimitReturningFontSize = lastSavedSettings.LimitReturningFontSize,
                 LimitReturningTextColor = lastSavedSettings.LimitReturningTextColor,
                 LimitReturningBottomMargin = lastSavedSettings.LimitReturningBottomMargin,
+                LimitDesktopImagePath = lastSavedSettings.LimitDesktopImagePath, // THE FIX: Preserve Image Path
+                LimitDesktopImageSizeMode = lastSavedSettings.LimitDesktopImageSizeMode, // THE FIX: Preserve Size Mode
 
+                // 5. App & Security
                 AdminPassword = finalPassword,
                 LaunchOnStartup = startupCheckbox.Checked,
                 MinimizeToTray = minimizeTrayCheckbox.Checked,
                 ApplicationHighPriority = applicationHighPriorityCheckbox.Checked,
                 AdminShutdown = adminShutdownCheckbox.Checked,
                 ApplicationServiceActive = applicationServiceCheckbox.Checked,
-                IsAppRunningState = true
+                IsAppRunningState = true,
+                LastBypassDate = lastSavedSettings.LastBypassDate
             };
 
+            // Save to file and update current memory
             AppSettings.Save(newSettings);
             lastSavedSettings = newSettings;
 
+            // Apply internal logic
             startSeconds = minutes * 60;
             currentSecondsLeft = startSeconds;
 
@@ -551,7 +576,7 @@ namespace AzeuServices_V1
             ManageWatchdog(newSettings.ApplicationServiceActive);
             ResetWarningFlags();
 
-            // Re-start or Stop the remote manager based on new settings
+            // Re-sync Remote Service
             if (newSettings.EnableRemoteService) RemoteServiceManager.Instance.Start(newSettings);
             else RemoteServiceManager.Instance.Stop();
 
@@ -930,25 +955,23 @@ namespace AzeuServices_V1
             limitDesktopOpenAMorPMComboBox.Enabled = isCurfewEnabled;
             limitDesktopActionComboBox.Enabled = isCurfewEnabled;
 
+            // Check if the selected action is "Show Image Dialog"
             bool isImageAction = limitDesktopActionComboBox.Text == "Show Image";
-            bool enableImageControls = isCurfewEnabled && isImageAction;
-            viewLimitDesktopActionDialogBtn.Enabled = enableImageControls;
 
+            // Controls that only make sense if the "Show Image Dialog" action is selected
+            viewLimitDesktopActionDialogBtn.Enabled = isCurfewEnabled && isImageAction;
+            limitDesktopShutdownAfter3Minutes.Enabled = isCurfewEnabled && isImageAction; // FIXED: Linked to Image Action
+
+            // Warnings can be shown regardless of whether the final action is shutdown or dialog
             limitDesktopShowDialog5minCheckbox.Enabled = isCurfewEnabled;
             limitDesktopShowDialog10minCheckbox.Enabled = isCurfewEnabled;
             limitDesktopShowDialog30minCheckbox.Enabled = isCurfewEnabled;
-            limitDesktopShutdownAfter3Minutes.Enabled = isCurfewEnabled;
 
             // --- PASSWORD SECURITY SECTION ---
-            // Strictly check if the current password box matches the actual saved password
             bool isPasswordCorrect = (!string.IsNullOrEmpty(currentPasswordTextbox.Text) && currentPasswordTextbox.Text == lastSavedSettings.AdminPassword);
-
-            // Set the enabled state of the new password fields based on the check above
             newPasswordTextbox.Enabled = isPasswordCorrect;
             confirmPasswordTextbox.Enabled = isPasswordCorrect;
 
-            // If the password is NOT correct, we must clear any text in the new/confirm boxes 
-            // to prevent someone from typing a new password, then deleting the 'current' password to hide it.
             if (!isPasswordCorrect)
             {
                 newPasswordTextbox.Clear();
