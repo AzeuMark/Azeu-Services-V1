@@ -245,7 +245,15 @@ namespace AzeuServices_V1
         }
         private void SetupTrayIcon()
         {
-            trayIcon = new NotifyIcon() { Icon = SystemIcons.Application, Visible = true, Text = "Azeu Services V1" };
+            using (System.IO.MemoryStream ms = new System.IO.MemoryStream(Properties.Resources.azeu_icon))
+            {
+                trayIcon = new NotifyIcon()
+                {
+                    Icon = new Icon(ms), // This converts the byte[] to an Icon
+                    Visible = true,
+                    Text = "Azeu Services V1"
+                };
+            }
             trayIcon.DoubleClick += (s, e) => TryOpenFromTray();
             ContextMenuStrip menu = new ContextMenuStrip();
             menu.Items.Add("Open Settings", GetImageFromResource(Properties.Resources.open_icon), (s, e) => TryOpenFromTray());
