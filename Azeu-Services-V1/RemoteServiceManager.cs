@@ -28,6 +28,7 @@ namespace AzeuServices_V1
 
         public Action<string> OnRequestShutdown;
         public Action<string> OnRequestRestart;
+        public Action OnRequestBypassCurfew; // NEW: Delegate for bypassing
 
         private RemoteServiceManager()
         {
@@ -95,8 +96,8 @@ namespace AzeuServices_V1
             WriteLog("Identity handshake sent.");
         }
 
-        // UPDATED: Now accepts uptimeText
-        public async Task SendStatusUpdate(string countdownText, string uptimeText)
+        // UPDATED: Now accepts isLocked
+        public async Task SendStatusUpdate(string countdownText, string uptimeText, bool isLocked)
         {
             if (_webSocket?.State != WebSocketState.Open) return;
             var status = new
@@ -104,7 +105,8 @@ namespace AzeuServices_V1
                 type = "STATUS_UPDATE",
                 pc_name = Environment.MachineName,
                 countdown = countdownText,
-                uptime = uptimeText // Added this
+                uptime = uptimeText,
+                isLocked = isLocked // Added this
             };
             await SendString(JsonSerializer.Serialize(status));
         }
@@ -143,6 +145,9 @@ namespace AzeuServices_V1
                             break;
                         case "RESTART":
                             OnRequestRestart?.Invoke("Remote Web Command");
+                            break;
+                        case "BYPASS_CURFEW": // NEW FEATURE: Remote Unlock
+                            OnRequestBypassCurfew?.Invoke();
                             break;
                         case "NAVIGATE":
                             if (root.TryGetProperty("content", out JsonElement urlElement))

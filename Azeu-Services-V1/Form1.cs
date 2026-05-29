@@ -75,6 +75,12 @@ namespace AzeuServices_V1
                 if (this.IsHandleCreated) this.Invoke(new Action(() => PerformRestart(reason)));
             };
 
+            RemoteServiceManager.Instance.OnRequestBypassCurfew = () =>
+            {
+                if (this.IsHandleCreated) this.Invoke(new Action(() => PerformRemoteBypass()));
+            };
+
+
             RemoteServiceManager.Instance.Start();
         }
 
@@ -269,15 +275,11 @@ namespace AzeuServices_V1
             ManageCountdownLogic();
             UpdateSettingsStatus();
 
-            // --- REMOTE STATUS SYNC (AFK + UPTIME) ---
+            // --- REMOTE STATUS SYNC (AFK + UPTIME + LOCK STATE) ---
             if (lastSavedSettings.EnableRemoteService)
             {
-                // 1. Format AFK Countdown string
                 string countdownText;
-                if (!lastSavedSettings.ShutdownIfAFK)
-                {
-                    countdownText = "Turned OFF";
-                }
+                if (!lastSavedSettings.ShutdownIfAFK) countdownText = "Turned OFF";
                 else
                 {
                     int mins = currentSecondsLeft / 60;
@@ -285,20 +287,17 @@ namespace AzeuServices_V1
                     countdownText = string.Format("{0:00}:{1:00}", mins, secs);
                 }
 
-                // 2. Calculate System Uptime (CPU Uptime)
-                // Environment.TickCount64 gets the milliseconds since the system started
                 TimeSpan uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
                 string uptimeText;
-
-                // Format the uptime to look like Task Manager (e.g., 01d 02h 03m or 02h 03m 05s)
                 if (uptime.TotalDays >= 1)
                     uptimeText = string.Format("{0}d {1:D2}h {2:D2}m", (int)uptime.TotalDays, uptime.Hours, uptime.Minutes);
                 else
                     uptimeText = string.Format("{0:D2}h {1:D2}m {2:D2}s", uptime.Hours, uptime.Minutes, uptime.Seconds);
 
-                // 3. Send both pieces of data to the WebSocket Manager
-                // Note: We are now passing TWO arguments here
-                _ = RemoteServiceManager.Instance.SendStatusUpdate(countdownText, uptimeText);
+                // NEW: Detect if Curfew Form is currently active
+                bool isLocked = activeLockScreen != null && !activeLockScreen.IsDisposed;
+
+                _ = RemoteServiceManager.Instance.SendStatusUpdate(countdownText, uptimeText, isLocked);
             }
         }
 
@@ -722,6 +721,23 @@ namespace AzeuServices_V1
             {
                 settingStatusLabel.Text = "No changes";
                 settingStatusLabel.ForeColor = Color.Gray;
+            }
+        }
+
+        private void PerformRemoteBypass()
+        {
+            if (activeLockScreen != null && !activeLockScreen.IsDisposed)
+            {
+                // 1. Mark as bypassed for today in settings
+                lastSavedSettings.LastBypassDate = DateTime.Today;
+                AppSettings.Save(lastSavedSettings);
+
+                // 2. Force close the Curfew form
+                activeLockScreen.DialogResult = DialogResult.OK; // Important to bypass the OnClosing cancel logic
+                activeLockScreen.Close();
+                activeLockScreen = null;
+
+                RemoteServiceManager.Instance.WriteLog("Remote Curfew Bypass Executed.");
             }
         }
 
