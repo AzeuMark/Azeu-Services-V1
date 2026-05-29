@@ -63,6 +63,16 @@ namespace AzeuServices_V1.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] azeu_icon {
+            get {
+                object obj = ResourceManager.GetObject("azeu_icon", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] exit_icon {
             get {
                 object obj = ResourceManager.GetObject("exit_icon", resourceCulture);

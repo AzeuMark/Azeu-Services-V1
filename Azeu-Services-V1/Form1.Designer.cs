@@ -17,6 +17,7 @@
 
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             shutdownAFKCheckbox = new CheckBox();
             suspiciousKeysLabel = new Label();
             kboardStatusLabel = new Label();
@@ -882,6 +883,7 @@
             Controls.Add(saveSettingsBtn);
             Controls.Add(settingStatusLabel);
             FormBorderStyle = FormBorderStyle.FixedSingle;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Azeu Services V1";

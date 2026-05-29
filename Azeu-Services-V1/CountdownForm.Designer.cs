@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(CountdownForm));
             lblTimer = new Label();
             label1 = new Label();
             SuspendLayout();
@@ -63,6 +64,7 @@
             Controls.Add(label1);
             Controls.Add(lblTimer);
             FormBorderStyle = FormBorderStyle.None;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "CountdownForm";
             ShowIcon = false;
             Text = "CountdownForm";

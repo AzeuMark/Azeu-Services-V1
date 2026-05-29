@@ -18,7 +18,7 @@ namespace AzeuServices_V1
             this.FormBorderStyle = FormBorderStyle.None;
             this.ShowInTaskbar = false;
             this.StartPosition = FormStartPosition.Manual;
-
+            
             // REMOVED: hardcoded this.TopMost = true;
 
             SetupContextMenu();

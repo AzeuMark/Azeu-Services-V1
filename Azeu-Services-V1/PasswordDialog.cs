@@ -1,5 +1,8 @@
-﻿using System;
+﻿using AzeuServices_V1.Properties;
+using System;
+using System.Reflection;
 using System.Windows.Forms;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace AzeuServices_V1
 {
@@ -28,6 +31,14 @@ namespace AzeuServices_V1
                     prompt.MaximizeBox = false;
                     prompt.MinimizeBox = false;
                     prompt.TopMost = true;
+                    var assembly = Assembly.GetExecutingAssembly();
+
+                    // Notice the exact path matching your folder layout: Namespace.Folder.FileName
+                    byte[] iconBytes = Resources.azeu_icon;
+                    using (MemoryStream ms = new MemoryStream(iconBytes))
+                    {
+                        prompt.Icon = new Icon(ms);
+                    }
 
                     Label textLabel = new Label() { Left = 20, Top = 20, Text = "Enter Administrator Password:", Width = 250 };
                     TextBox textBox = new TextBox() { Left = 20, Top = 45, Width = 240, PasswordChar = '*' };
