@@ -109,6 +109,20 @@ namespace AzeuServices_V1
 
         private void CheckDesktopLimit()
         {
+            // FIX: If the Settings window (Form1) is currently visible, 
+            // we must prevent the Curfew lock from triggering.
+            if (this.Visible)
+            {
+                // If the lock screen was already open, close it so the Admin can work
+                if (activeLockScreen != null && !activeLockScreen.IsDisposed)
+                {
+                    activeLockScreen.DialogResult = DialogResult.OK; // Set OK to bypass closing cancel logic
+                    activeLockScreen.Close();
+                    activeLockScreen = null;
+                }
+                return;
+            }
+
             if (!lastSavedSettings.LimitDesktopUsage) return;
 
             // 1. Skip if bypassed today
@@ -162,7 +176,7 @@ namespace AzeuServices_V1
                 }
             }
 
-            // 5. Warning Logic (The Fix)
+            // 5. Warning Logic
             if (!isInsideCurfew)
             {
                 // Calculate the NEXT occurrence of the curfewStart
