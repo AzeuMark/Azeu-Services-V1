@@ -26,7 +26,6 @@ namespace AzeuServices_V1
 
         public event Action<string> OnStatusChanged;
 
-        // --- NEW: DELEGATES TO NOTIFY FORM1 ---
         public Action<string> OnRequestShutdown;
         public Action<string> OnRequestRestart;
 
@@ -122,7 +121,6 @@ namespace AzeuServices_V1
                 using JsonDocument doc = JsonDocument.Parse(json);
                 JsonElement root = doc.RootElement;
 
-                // Ensure we are looking for the "command" property
                 if (root.TryGetProperty("command", out JsonElement cmdElement))
                 {
                     string command = cmdElement.GetString().ToUpper();
@@ -139,8 +137,18 @@ namespace AzeuServices_V1
                         case "RESTART":
                             OnRequestRestart?.Invoke("Remote Web Command");
                             break;
+                        case "NAVIGATE":
+                            // --- NEW FEATURE: NAVIGATE TO URL ---
+                            if (root.TryGetProperty("content", out JsonElement urlElement))
+                            {
+                                string url = urlElement.GetString();
+                                if (!string.IsNullOrEmpty(url))
+                                {
+                                    NavigateToUrl(url);
+                                }
+                            }
+                            break;
                         case "MESSAGE":
-                            // FIX: Ensure 'content' property exists and has text before showing popup
                             if (root.TryGetProperty("content", out JsonElement msgElement))
                             {
                                 string messageText = msgElement.GetString();
@@ -156,6 +164,25 @@ namespace AzeuServices_V1
             catch (Exception ex)
             {
                 WriteLog("Command Handling Error: " + ex.Message);
+            }
+        }
+
+        private void NavigateToUrl(string url)
+        {
+            try
+            {
+                // Ensure UseShellExecute is true so it launches the default browser
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                };
+                Process.Start(psi);
+                WriteLog("Remote Navigation Successful: " + url);
+            }
+            catch (Exception ex)
+            {
+                WriteLog("Navigation Failed: " + ex.Message);
             }
         }
 
@@ -197,8 +224,6 @@ namespace AzeuServices_V1
 
         private void ShowRemoteMessage(string msg)
         {
-            // Use BeginInvoke on an existing form to ensure Thread Safety
-            // This allows multiple messages to spawn without blocking the socket
             Task.Run(() => {
                 if (Application.OpenForms.Count > 0)
                 {

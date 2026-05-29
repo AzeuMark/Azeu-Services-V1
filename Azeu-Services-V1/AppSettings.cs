@@ -15,9 +15,9 @@ namespace AzeuServices_V1
         public bool ShutdownIfAFK { get; set; } = false;
         public bool MinimizeToTray { get; set; } = false;
         public bool LaunchOnStartup { get; set; } = false;
-        public string AdminPassword { get; set; } = "1234";
-        public int CountdownMinutes { get; set; } = 1;
-        public int CountdownOpacity { get; set; } = 80;
+        public string AdminPassword { get; set; } = "1";
+        public int CountdownMinutes { get; set; } = 5;
+        public int CountdownOpacity { get; set; } = 70;
         public bool ShowCountdown { get; set; } = true;
         public bool CountdownTopMost { get; set; } = true;
         public bool EnableOpacity { get; set; } = true;
@@ -55,8 +55,8 @@ namespace AzeuServices_V1
         public bool LimitDesktopUsage { get; set; } = false;
         public string LimitDesktopHour { get; set; } = "12";
         public string LimitDesktopMin { get; set; } = "00";
-        public string LimitDesktopAMPM { get; set; } = "PM";
-        public string LimitDesktopHourOpen { get; set; } = "08";
+        public string LimitDesktopAMPM { get; set; } = "AM";
+        public string LimitDesktopHourOpen { get; set; } = "07";
         public string LimitDesktopMinOpen { get; set; } = "00";
         public string LimitDesktopAMPMOpen { get; set; } = "AM";
         public string LimitDesktopAction { get; set; } = "Shutdown";
@@ -70,8 +70,8 @@ namespace AzeuServices_V1
         public string LimitMessage { get; set; } = "PISONET IS NOW CLOSED";
         public string LimitFontFamily { get; set; } = "Arial";
         public int LimitFontSize { get; set; } = 48;
-        public string LimitBgColor { get; set; } = "Black";
-        public string LimitTextColor { get; set; } = "White";
+        public string LimitBgColor { get; set; } = "White";
+        public string LimitTextColor { get; set; } = "Black";
         public bool LimitShowBypassInstructions { get; set; } = false;
 
         public bool LimitShowReturningTime { get; set; } = true;
