@@ -41,10 +41,6 @@
             settingStatusLabel = new Label();
             saveSettingsBtn = new Button();
             limitDesktopUsageCheckbox = new CheckBox();
-            limitDesktopHourTextbox = new TextBox();
-            limitDesktopMinTextbox = new TextBox();
-            limitDesktopHourOpenTextbox = new TextBox();
-            limitDesktopMinOpenTextbox = new TextBox();
             limitDesktopAMorPMComboBox = new ComboBox();
             limitDesktopOpenAMorPMComboBox = new ComboBox();
             limitDesktopActionComboBox = new ComboBox();
@@ -57,6 +53,10 @@
             afkWarningThresholdLabel = new Label();
             afkWarningThresholdTextbox = new TextBox();
             remoteServiceCheckbox = new CheckBox();
+            limitDesktopHourCombo = new ComboBox();
+            limitDesktopHourOpenCombo = new ComboBox();
+            limitDesktopMinCombo = new ComboBox();
+            limitDesktopMinOpenCombo = new ComboBox();
             SuspendLayout();
             // 
             // shutdownAFKCheckbox
@@ -301,46 +301,6 @@
             limitDesktopUsageCheckbox.UseVisualStyleBackColor = true;
             limitDesktopUsageCheckbox.CheckedChanged += OnUIStateChanged;
             // 
-            // limitDesktopHourTextbox
-            // 
-            limitDesktopHourTextbox.Location = new Point(635, 125);
-            limitDesktopHourTextbox.Name = "limitDesktopHourTextbox";
-            limitDesktopHourTextbox.Size = new Size(50, 23);
-            limitDesktopHourTextbox.TabIndex = 36;
-            limitDesktopHourTextbox.TextChanged += OnSettingChanged;
-            limitDesktopHourTextbox.KeyPress += limitDesktopNumeric_KeyPress;
-            limitDesktopHourTextbox.Leave += limitDesktopNumeric_Leave;
-            // 
-            // limitDesktopMinTextbox
-            // 
-            limitDesktopMinTextbox.Location = new Point(695, 125);
-            limitDesktopMinTextbox.Name = "limitDesktopMinTextbox";
-            limitDesktopMinTextbox.Size = new Size(50, 23);
-            limitDesktopMinTextbox.TabIndex = 37;
-            limitDesktopMinTextbox.TextChanged += OnSettingChanged;
-            limitDesktopMinTextbox.KeyPress += limitDesktopNumeric_KeyPress;
-            limitDesktopMinTextbox.Leave += limitDesktopNumeric_Leave;
-            // 
-            // limitDesktopHourOpenTextbox
-            // 
-            limitDesktopHourOpenTextbox.Location = new Point(635, 183);
-            limitDesktopHourOpenTextbox.Name = "limitDesktopHourOpenTextbox";
-            limitDesktopHourOpenTextbox.Size = new Size(50, 23);
-            limitDesktopHourOpenTextbox.TabIndex = 38;
-            limitDesktopHourOpenTextbox.TextChanged += OnSettingChanged;
-            limitDesktopHourOpenTextbox.KeyPress += limitDesktopNumeric_KeyPress;
-            limitDesktopHourOpenTextbox.Leave += limitDesktopNumeric_Leave;
-            // 
-            // limitDesktopMinOpenTextbox
-            // 
-            limitDesktopMinOpenTextbox.Location = new Point(695, 183);
-            limitDesktopMinOpenTextbox.Name = "limitDesktopMinOpenTextbox";
-            limitDesktopMinOpenTextbox.Size = new Size(50, 23);
-            limitDesktopMinOpenTextbox.TabIndex = 39;
-            limitDesktopMinOpenTextbox.TextChanged += OnSettingChanged;
-            limitDesktopMinOpenTextbox.KeyPress += limitDesktopNumeric_KeyPress;
-            limitDesktopMinOpenTextbox.Leave += limitDesktopNumeric_Leave;
-            // 
             // limitDesktopAMorPMComboBox
             // 
             limitDesktopAMorPMComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -461,11 +421,61 @@
             remoteServiceCheckbox.UseVisualStyleBackColor = true;
             remoteServiceCheckbox.CheckedChanged += OnUIStateChanged;
             // 
+            // limitDesktopHourCombo
+            // 
+            limitDesktopHourCombo.AutoCompleteCustomSource.AddRange(new string[] { "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12" });
+            limitDesktopHourCombo.FormattingEnabled = true;
+            limitDesktopHourCombo.Items.AddRange(new object[] { "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12" });
+            limitDesktopHourCombo.Location = new Point(635, 125);
+            limitDesktopHourCombo.Name = "limitDesktopHourCombo";
+            limitDesktopHourCombo.Size = new Size(50, 23);
+            limitDesktopHourCombo.TabIndex = 43;
+            limitDesktopHourCombo.KeyPress += AMandPM_KeyPress;
+            limitDesktopHourCombo.Leave += AMandPM_Leave;
+            // 
+            // limitDesktopHourOpenCombo
+            // 
+            limitDesktopHourOpenCombo.AutoCompleteCustomSource.AddRange(new string[] { "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12" });
+            limitDesktopHourOpenCombo.FormattingEnabled = true;
+            limitDesktopHourOpenCombo.Items.AddRange(new object[] { "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12" });
+            limitDesktopHourOpenCombo.Location = new Point(635, 183);
+            limitDesktopHourOpenCombo.Name = "limitDesktopHourOpenCombo";
+            limitDesktopHourOpenCombo.Size = new Size(50, 23);
+            limitDesktopHourOpenCombo.TabIndex = 44;
+            limitDesktopHourOpenCombo.KeyPress += AMandPM_KeyPress;
+            limitDesktopHourOpenCombo.Leave += AMandPM_Leave;
+            // 
+            // limitDesktopMinCombo
+            // 
+            limitDesktopMinCombo.FormattingEnabled = true;
+            limitDesktopMinCombo.Items.AddRange(new object[] { "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "", "", "```", "", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59" });
+            limitDesktopMinCombo.Location = new Point(695, 125);
+            limitDesktopMinCombo.Name = "limitDesktopMinCombo";
+            limitDesktopMinCombo.Size = new Size(50, 23);
+            limitDesktopMinCombo.TabIndex = 45;
+            limitDesktopMinCombo.KeyPress += MinutesLimit_KeyPress;
+            limitDesktopMinCombo.Leave += MinutesLimit_Leave;
+            // 
+            // limitDesktopMinOpenCombo
+            // 
+            limitDesktopMinOpenCombo.FormattingEnabled = true;
+            limitDesktopMinOpenCombo.Items.AddRange(new object[] { "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "", "", "```", "", "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59" });
+            limitDesktopMinOpenCombo.Location = new Point(695, 183);
+            limitDesktopMinOpenCombo.Name = "limitDesktopMinOpenCombo";
+            limitDesktopMinOpenCombo.Size = new Size(50, 23);
+            limitDesktopMinOpenCombo.TabIndex = 46;
+            limitDesktopMinOpenCombo.KeyPress += MinutesLimit_KeyPress;
+            limitDesktopMinOpenCombo.Leave += MinutesLimit_Leave;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(880, 650);
+            Controls.Add(limitDesktopMinOpenCombo);
+            Controls.Add(limitDesktopMinCombo);
+            Controls.Add(limitDesktopHourOpenCombo);
+            Controls.Add(limitDesktopHourCombo);
             Controls.Add(remoteServiceCheckbox);
             Controls.Add(btnRemoteSettings);
             Controls.Add(viewLimitDesktopActionDialogBtn);
@@ -476,10 +486,6 @@
             Controls.Add(limitDesktopActionComboBox);
             Controls.Add(limitDesktopOpenAMorPMComboBox);
             Controls.Add(limitDesktopAMorPMComboBox);
-            Controls.Add(limitDesktopMinOpenTextbox);
-            Controls.Add(limitDesktopHourOpenTextbox);
-            Controls.Add(limitDesktopMinTextbox);
-            Controls.Add(limitDesktopHourTextbox);
             Controls.Add(limitDesktopUsageCheckbox);
             Controls.Add(saveSettingsBtn);
             Controls.Add(settingStatusLabel);
@@ -540,10 +546,6 @@
         private Label settingStatusLabel;
         private Button saveSettingsBtn;
         private CheckBox limitDesktopUsageCheckbox;
-        private TextBox limitDesktopHourTextbox;
-        private TextBox limitDesktopMinTextbox;
-        private TextBox limitDesktopHourOpenTextbox;
-        private TextBox limitDesktopMinOpenTextbox;
         private ComboBox limitDesktopAMorPMComboBox;
         private ComboBox limitDesktopOpenAMorPMComboBox;
         private ComboBox limitDesktopActionComboBox;
@@ -556,5 +558,9 @@
         private Label afkWarningThresholdLabel;
         private TextBox afkWarningThresholdTextbox;
         private CheckBox remoteServiceCheckbox;
+        private ComboBox limitDesktopHourCombo;
+        private ComboBox limitDesktopHourOpenCombo;
+        private ComboBox limitDesktopMinCombo;
+        private ComboBox limitDesktopMinOpenCombo;
     }
 }

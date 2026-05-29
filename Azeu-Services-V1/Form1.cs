@@ -538,11 +538,11 @@ namespace AzeuServices_V1
                 WebSocketToken = lastSavedSettings.WebSocketToken,
 
                 LimitDesktopUsage = limitDesktopUsageCheckbox.Checked,
-                LimitDesktopHour = limitDesktopHourTextbox.Text,
-                LimitDesktopMin = limitDesktopMinTextbox.Text,
+                LimitDesktopHour = limitDesktopHourCombo.Text,
+                LimitDesktopMin = limitDesktopMinCombo.Text,
                 LimitDesktopAMPM = limitDesktopAMorPMComboBox.Text,
-                LimitDesktopHourOpen = limitDesktopHourOpenTextbox.Text,
-                LimitDesktopMinOpen = limitDesktopMinOpenTextbox.Text,
+                LimitDesktopHourOpen = limitDesktopHourOpenCombo.Text,
+                LimitDesktopMinOpen = limitDesktopMinOpenCombo.Text,
                 LimitDesktopAMPMOpen = limitDesktopOpenAMorPMComboBox.Text,
                 LimitDesktopAction = limitDesktopActionComboBox.Text,
                 LimitShow5min = limitDesktopShowDialog5minCheckbox.Checked,
@@ -622,13 +622,13 @@ namespace AzeuServices_V1
 
                 // Desktop Curfew (Closing)
                 limitDesktopUsageCheckbox.Checked = lastSavedSettings.LimitDesktopUsage;
-                limitDesktopHourTextbox.Text = lastSavedSettings.LimitDesktopHour;
-                limitDesktopMinTextbox.Text = lastSavedSettings.LimitDesktopMin;
+                limitDesktopHourCombo.Text = lastSavedSettings.LimitDesktopHour;
+                limitDesktopMinCombo.Text = lastSavedSettings.LimitDesktopMin;
                 limitDesktopAMorPMComboBox.Text = lastSavedSettings.LimitDesktopAMPM;
 
                 // Desktop Curfew (Opening)
-                limitDesktopHourOpenTextbox.Text = lastSavedSettings.LimitDesktopHourOpen;
-                limitDesktopMinOpenTextbox.Text = lastSavedSettings.LimitDesktopMinOpen;
+                limitDesktopHourOpenCombo.Text = lastSavedSettings.LimitDesktopHourOpen;
+                limitDesktopMinOpenCombo.Text = lastSavedSettings.LimitDesktopMinOpen;
                 limitDesktopOpenAMorPMComboBox.Text = lastSavedSettings.LimitDesktopAMPMOpen;
 
                 // Actions & Warnings
@@ -688,11 +688,11 @@ namespace AzeuServices_V1
 
             // 3. Curfew Schedule Comparison
             if (limitDesktopUsageCheckbox.Checked != lastSavedSettings.LimitDesktopUsage) hasChanges = true;
-            if (limitDesktopHourTextbox.Text != lastSavedSettings.LimitDesktopHour) hasChanges = true;
-            if (limitDesktopMinTextbox.Text != lastSavedSettings.LimitDesktopMin) hasChanges = true;
+            if (limitDesktopHourCombo.Text != lastSavedSettings.LimitDesktopHour) hasChanges = true;
+            if (limitDesktopMinCombo.Text != lastSavedSettings.LimitDesktopMin) hasChanges = true;
             if (limitDesktopAMorPMComboBox.Text != lastSavedSettings.LimitDesktopAMPM) hasChanges = true;
-            if (limitDesktopHourOpenTextbox.Text != lastSavedSettings.LimitDesktopHourOpen) hasChanges = true;
-            if (limitDesktopMinOpenTextbox.Text != lastSavedSettings.LimitDesktopMinOpen) hasChanges = true;
+            if (limitDesktopHourOpenCombo.Text != lastSavedSettings.LimitDesktopHourOpen) hasChanges = true;
+            if (limitDesktopMinOpenCombo.Text != lastSavedSettings.LimitDesktopMinOpen) hasChanges = true;
             if (limitDesktopOpenAMorPMComboBox.Text != lastSavedSettings.LimitDesktopAMPMOpen) hasChanges = true;
 
             // 4. Curfew Action & Warnings Comparison
@@ -874,6 +874,42 @@ namespace AzeuServices_V1
             if (countdownWindow != null) countdownWindow.UpdateTime(currentSecondsLeft);
         }
 
+        private void AMandPM_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            ComboBox cmb = sender as ComboBox;
+
+            if (char.IsDigit(e.KeyChar) && int.TryParse(cmb.Text + e.KeyChar, out int val) && val <= 12)
+                return; // Allow
+
+            if (!char.IsControl(e.KeyChar))
+                e.Handled = true; // Block everything else
+        }
+
+        private void AMandPM_Leave(object sender, EventArgs e)
+        {
+            ComboBox cmb = sender as ComboBox;
+            if (cmb == null) return;
+
+            // Try to parse the value
+            if (int.TryParse(cmb.Text, out int value))
+            {
+                // Check if within 1-12 range
+                if (value < 1 || value > 12)
+                {
+                    cmb.Text = "01";
+                }
+                else
+                {
+                    cmb.Text = value.ToString("00");
+                }
+            }
+            else
+            {
+                // Invalid input
+                cmb.Text = "01";
+            }
+        }
+
         protected override void WndProc(ref Message m)
         {
             // If the message matches our custom "OpenRequest" string
@@ -913,11 +949,11 @@ namespace AzeuServices_V1
 
             // 5. Curfew Group
             bool isCurfewEnabled = limitDesktopUsageCheckbox.Checked;
-            limitDesktopHourTextbox.Enabled = isCurfewEnabled;
-            limitDesktopMinTextbox.Enabled = isCurfewEnabled;
+            limitDesktopHourCombo.Enabled = isCurfewEnabled;
+            limitDesktopMinCombo.Enabled = isCurfewEnabled;
             limitDesktopAMorPMComboBox.Enabled = isCurfewEnabled;
-            limitDesktopHourOpenTextbox.Enabled = isCurfewEnabled;
-            limitDesktopMinOpenTextbox.Enabled = isCurfewEnabled;
+            limitDesktopHourOpenCombo.Enabled = isCurfewEnabled;
+            limitDesktopMinOpenCombo.Enabled = isCurfewEnabled;
             limitDesktopOpenAMorPMComboBox.Enabled = isCurfewEnabled;
             limitDesktopActionComboBox.Enabled = isCurfewEnabled;
 
@@ -1152,5 +1188,40 @@ Loop";
             UpdateSettingsStatus();
         }
 
+        private void MinutesLimit_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            ComboBox cmb = sender as ComboBox;
+
+            if (char.IsDigit(e.KeyChar))
+            {
+                string potentialText = cmb.Text + e.KeyChar;
+                if (int.TryParse(potentialText, out int value))
+                {
+                    if (value > 59)
+                        e.Handled = true;
+                }
+            }
+            else if (!char.IsControl(e.KeyChar))
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void MinutesLimit_Leave(object sender, EventArgs e)
+        {
+            ComboBox cmb = sender as ComboBox;
+            if (cmb == null) return;
+
+            if (int.TryParse(cmb.Text, out int value))
+            {
+                if (value < 0) cmb.Text = "00";
+                else if (value > 59) cmb.Text = "59";
+                else cmb.Text = value.ToString("00");
+            }
+            else
+            {
+                cmb.Text = "00";
+            }
+        }
     }
 }
