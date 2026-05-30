@@ -25,10 +25,9 @@ namespace AzeuServices_V1
         private string _logPath;
 
         public event Action<string> OnStatusChanged;
-
         public Action<string> OnRequestShutdown;
         public Action<string> OnRequestRestart;
-        public Action OnRequestBypassCurfew; // NEW: Delegate for bypassing
+        public Action OnRequestBypassCurfew;
 
         private RemoteServiceManager()
         {
@@ -44,19 +43,26 @@ namespace AzeuServices_V1
 
             if (!_activeSettings.EnableRemoteService || string.IsNullOrEmpty(_activeSettings.WebSocketUrl))
             {
-                WriteLog("Remote Service stopped.");
+                WriteLog("Remote Service is disabled in settings.");
+                OnStatusChanged?.Invoke("Disabled");
                 return;
             }
 
             _cts = new CancellationTokenSource();
-            Task.Run(() => ConnectionLoop(_cts.Token));
+            // Run the main connection loop in a long-running background thread
+            Task.Factory.StartNew(() => ConnectionLoop(_cts.Token), _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         public void Stop()
         {
-            _cts?.Cancel();
-            _webSocket?.Dispose();
-            _webSocket = null;
+            try
+            {
+                _cts?.Cancel();
+                _webSocket?.Abort();
+                _webSocket?.Dispose();
+                _webSocket = null;
+            }
+            catch { }
         }
 
         private async Task ConnectionLoop(CancellationToken token)
@@ -67,36 +73,71 @@ namespace AzeuServices_V1
                 {
                     OnStatusChanged?.Invoke("Connecting...");
                     _webSocket = new ClientWebSocket();
-                    Uri serverUri = new Uri(_activeSettings.WebSocketUrl);
 
+                    // Set Internal Keep-Alive to help with Stealth Mode stability
+                    _webSocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+
+                    Uri serverUri = new Uri(_activeSettings.WebSocketUrl);
                     await _webSocket.ConnectAsync(serverUri, token);
+
                     OnStatusChanged?.Invoke("Connected");
                     WriteLog("Connected to server: " + _activeSettings.WebSocketUrl);
 
                     await SendIdentity();
-                    await Task.Delay(1000);
-                    await CaptureAndSendScreenshot();
 
+                    // Start a dedicated Heartbeat task for this specific connection
+                    _ = RunHeartbeat(token);
+
+                    // Start receiving messages
                     await ReceiveMessages(token);
                 }
                 catch (Exception ex)
                 {
                     if (token.IsCancellationRequested) break;
                     OnStatusChanged?.Invoke("Disconnected");
-                    WriteLog("Connection Error: " + ex.Message);
-                    await Task.Delay(10000, token);
+                    WriteLog("Connection Lost: " + ex.Message + ". Reconnecting in 10s...");
+                    await Task.Delay(10000, token); // Wait before retrying
                 }
+            }
+        }
+
+        private async Task RunHeartbeat(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested && _webSocket?.State == WebSocketState.Open)
+            {
+                try
+                {
+                    // Every 10 seconds is the industry standard for stable connections
+                    await Task.Delay(10000, token);
+
+                    // We check uptime and lock state here internally
+                    TimeSpan uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                    string uptimeText = uptime.TotalDays >= 1
+                        ? $"{(int)uptime.TotalDays}d {uptime.Hours}h {uptime.Minutes}m"
+                        : $"{uptime.Hours:D2}h {uptime.Minutes:D2}m {uptime.Seconds:D2}s";
+
+                    // Detect lock state (Search for LimitClosedForm)
+                    bool isLocked = Application.OpenForms.Cast<Form>().Any(f => f.Name == "LimitClosedForm");
+
+                    await SendStatusUpdate("Service Active", uptimeText, isLocked);
+                }
+                catch { break; }
             }
         }
 
         private async Task SendIdentity()
         {
-            var identity = new { type = "IDENTITY", pc_name = Environment.MachineName, token = _activeSettings.WebSocketToken, status = "Online" };
+            var identity = new
+            {
+                type = "IDENTITY",
+                pc_name = Environment.MachineName,
+                token = _activeSettings.WebSocketToken,
+                status = "Online"
+            };
             await SendString(JsonSerializer.Serialize(identity));
             WriteLog("Identity handshake sent.");
         }
 
-        // UPDATED: Now accepts isLocked
         public async Task SendStatusUpdate(string countdownText, string uptimeText, bool isLocked)
         {
             if (_webSocket?.State != WebSocketState.Open) return;
@@ -106,7 +147,7 @@ namespace AzeuServices_V1
                 pc_name = Environment.MachineName,
                 countdown = countdownText,
                 uptime = uptimeText,
-                isLocked = isLocked // Added this
+                isLocked = isLocked
             };
             await SendString(JsonSerializer.Serialize(status));
         }
@@ -117,7 +158,13 @@ namespace AzeuServices_V1
             while (_webSocket.State == WebSocketState.Open && !token.IsCancellationRequested)
             {
                 var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
-                if (result.MessageType == WebSocketMessageType.Close) break;
+
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    WriteLog("Server requested closure.");
+                    break;
+                }
+
                 string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 await HandleCommand(message);
             }
@@ -137,50 +184,32 @@ namespace AzeuServices_V1
 
                     switch (command)
                     {
-                        case "SCREENSHOT":
-                            await CaptureAndSendScreenshot();
-                            break;
-                        case "SHUTDOWN":
-                            OnRequestShutdown?.Invoke("Remote Web Command");
-                            break;
-                        case "RESTART":
-                            OnRequestRestart?.Invoke("Remote Web Command");
-                            break;
-                        case "BYPASS_CURFEW": // NEW FEATURE: Remote Unlock
-                            OnRequestBypassCurfew?.Invoke();
-                            break;
+                        case "SCREENSHOT": await CaptureAndSendScreenshot(); break;
+                        case "SHUTDOWN": OnRequestShutdown?.Invoke("Remote Web Command"); break;
+                        case "RESTART": OnRequestRestart?.Invoke("Remote Web Command"); break;
+                        case "BYPASS_CURFEW": OnRequestBypassCurfew?.Invoke(); break;
                         case "NAVIGATE":
                             if (root.TryGetProperty("content", out JsonElement urlElement))
-                            {
-                                string url = urlElement.GetString();
-                                if (!string.IsNullOrEmpty(url)) NavigateToUrl(url);
-                            }
+                                NavigateToUrl(urlElement.GetString());
                             break;
                         case "MESSAGE":
                             if (root.TryGetProperty("content", out JsonElement msgElement))
-                            {
-                                string messageText = msgElement.GetString();
-                                if (!string.IsNullOrEmpty(messageText)) ShowRemoteMessage(messageText);
-                            }
+                                ShowRemoteMessage(msgElement.GetString());
                             break;
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                WriteLog("Command Handling Error: " + ex.Message);
-            }
+            catch (Exception ex) { WriteLog("Command Error: " + ex.Message); }
         }
 
         private void NavigateToUrl(string url)
         {
             try
             {
-                ProcessStartInfo psi = new ProcessStartInfo { FileName = url, UseShellExecute = true };
-                Process.Start(psi);
-                WriteLog("Remote Navigation Successful: " + url);
+                Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+                WriteLog("Remote Nav: " + url);
             }
-            catch (Exception ex) { WriteLog("Navigation Failed: " + ex.Message); }
+            catch { }
         }
 
         public async Task CaptureAndSendScreenshot()
@@ -194,7 +223,7 @@ namespace AzeuServices_V1
                     using (Graphics g = Graphics.FromImage(bitmap)) g.CopyFromScreen(Point.Empty, Point.Empty, bounds.Size);
                     using (Bitmap resized = new Bitmap(bitmap, new Size(1280, 720)))
                     {
-                        ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+                        ImageCodecInfo jpgEncoder = ImageCodecInfo.GetImageDecoders().First(x => x.FormatID == ImageFormat.Jpeg.Guid);
                         EncoderParameters ep = new EncoderParameters(1);
                         ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 60L);
                         resized.Save(fullPath, jpgEncoder, ep);
@@ -202,7 +231,6 @@ namespace AzeuServices_V1
                 }
 
                 string base64Image = Convert.ToBase64String(File.ReadAllBytes(fullPath));
-
                 var response = new
                 {
                     type = "SCREENSHOT_DATA",
@@ -213,28 +241,24 @@ namespace AzeuServices_V1
                 };
 
                 await SendString(JsonSerializer.Serialize(response));
-                WriteLog("Screenshot sent.");
                 if (File.Exists(fullPath)) File.Delete(fullPath);
             }
-            catch (Exception ex) { WriteLog("Screenshot Error: " + ex.Message); }
+            catch { }
         }
 
         private void ShowRemoteMessage(string msg)
         {
+            // SAFETY: Instead of OpenForms[0], we use a more robust way to find a sync context
             Task.Run(() => {
-                if (Application.OpenForms.Count > 0)
+                Form syncForm = Application.OpenForms.Cast<Form>().FirstOrDefault(f => f.IsHandleCreated);
+                if (syncForm != null)
                 {
-                    var targetForm = Application.OpenForms[0];
-                    if (targetForm.IsHandleCreated)
-                    {
-                        targetForm.BeginInvoke(new Action(() => {
-                            RemoteMessageForm popup = new RemoteMessageForm(msg);
-                            popup.Show();
-                        }));
-                    }
+                    syncForm.BeginInvoke(new Action(() => {
+                        RemoteMessageForm popup = new RemoteMessageForm(msg);
+                        popup.Show();
+                    }));
                 }
             });
-            WriteLog("Remote Message processed: " + msg);
         }
 
         private async Task SendString(string data)
@@ -249,20 +273,17 @@ namespace AzeuServices_V1
             try
             {
                 string logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
-                FileInfo fi = new FileInfo(_logPath);
-                if (fi.Exists && fi.Length > 2 * 1024 * 1024)
-                {
-                    string[] lines = File.ReadAllLines(_logPath);
-                    File.WriteAllLines(_logPath, lines.Skip(lines.Length / 2));
-                }
                 File.AppendAllText(_logPath, logEntry);
+
+                // Keep log file small (Trim if over 1MB)
+                FileInfo fi = new FileInfo(_logPath);
+                if (fi.Length > 1024 * 1024)
+                {
+                    var lines = File.ReadAllLines(_logPath).Skip(500);
+                    File.WriteAllLines(_logPath, lines);
+                }
             }
             catch { }
-        }
-
-        private ImageCodecInfo GetEncoder(ImageFormat format)
-        {
-            return ImageCodecInfo.GetImageDecoders().FirstOrDefault(x => x.FormatID == format.Guid);
         }
     }
 }
