@@ -1,30 +1,39 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.InteropServices; // Required for the fix
 using System.Windows.Forms;
 
 namespace AzeuServices_V1
 {
     public partial class RemoteMessageForm : Form
     {
-        // Static list to track all open message forms for dynamic stacking
         private static List<RemoteMessageForm> _activeForms = new List<RemoteMessageForm>();
         private const int MaxForms = 5;
         private const int autoCloseSeconds = 5;
         private System.Windows.Forms.Timer _autoCloseTimer;
 
+        // --- Win32 API to force TopMost ---
+        [DllImport("user32.dll")]
+        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        const uint SWP_NOSIZE = 0x0001;
+        const uint SWP_NOMOVE = 0x0002;
+        const uint SWP_SHOWWINDOW = 0x0040;
+        // ----------------------------------
+
         public RemoteMessageForm(string message)
         {
             InitializeComponent();
             this.Text = "System Message";
-            this.TopMost = true;
+            this.TopMost = true; // Still keep this
             this.ShowInTaskbar = false;
             this.FormBorderStyle = FormBorderStyle.None;
-            this.BackColor = Color.FromArgb(30, 30, 30); // Dark theme
+            this.BackColor = Color.FromArgb(30, 30, 30);
 
             lblMessage.Text = message;
 
-            // Handle limit: Close oldest if we exceed 5
             if (_activeForms.Count >= MaxForms)
             {
                 if (_activeForms[0] != null && !_activeForms[0].IsDisposed)
@@ -32,10 +41,8 @@ namespace AzeuServices_V1
                     _activeForms[0].Close();
                 }
             }
-
             _activeForms.Add(this);
 
-            // Setup the second auto-close timer
             _autoCloseTimer = new System.Windows.Forms.Timer { Interval = autoCloseSeconds * 1000 };
             _autoCloseTimer.Tick += (s, e) => this.Close();
             _autoCloseTimer.Start();
@@ -44,24 +51,24 @@ namespace AzeuServices_V1
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-            // Rearrange all forms whenever a new one is loaded
             RearrangeStacks();
+
+            // CRITICAL FIX: Force the window to the top of the Z-Order immediately on load
+            SetWindowPos(this.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
         }
+
+        protected override bool ShowWithoutActivation => true; // Prevents stealing keyboard focus but stays on top
 
         private static void RearrangeStacks()
         {
             Rectangle workingArea = Screen.PrimaryScreen.WorkingArea;
-
-            // Base coordinates (where the first/bottom message sits)
             int baseX = workingArea.Right - 300 - 10;
-            int baseY = workingArea.Bottom - 140 - 80; // Margin for Countdown Widget
+            int baseY = workingArea.Bottom - 140 - 80;
 
-            // Rearrange from newest (bottom) to oldest (top)
             for (int i = 0; i < _activeForms.Count; i++)
             {
                 int positionFromBottom = _activeForms.Count - 1 - i;
-                int newY = baseY - (positionFromBottom * (140 + 10)); // 140 height + 10 margin
-
+                int newY = baseY - (positionFromBottom * (140 + 10));
                 _activeForms[i].Location = new Point(baseX, newY);
             }
         }
@@ -73,7 +80,6 @@ namespace AzeuServices_V1
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            // Clean up tracking and rearrange remaining forms
             _activeForms.Remove(this);
             RearrangeStacks();
 
@@ -85,7 +91,7 @@ namespace AzeuServices_V1
             base.OnFormClosed(e);
         }
 
-        // --- DESIGNER CODE (MODIFIED TO REMOVE CLICK-TO-CLOSE) ---
+        // --- DESIGNER CODE ---
         private System.ComponentModel.IContainer components = null;
         private Label lblMessage;
         private Button btnOk;
@@ -122,7 +128,6 @@ namespace AzeuServices_V1
             this.lblMessage.Location = new Point(12, 35);
             this.lblMessage.Size = new Size(276, 60);
             this.lblMessage.TextAlign = ContentAlignment.TopLeft;
-            // Note: Click event removed from lblMessage
             // 
             // btnOk
             // 
@@ -144,7 +149,7 @@ namespace AzeuServices_V1
             this.Controls.Add(this.lblMessage);
             this.Controls.Add(this.lblHeader);
             this.StartPosition = FormStartPosition.Manual;
-            // Note: Click event removed from this (the Form)
+            this.TopMost = true; // Ensure this is set
             this.ResumeLayout(false);
         }
     }
