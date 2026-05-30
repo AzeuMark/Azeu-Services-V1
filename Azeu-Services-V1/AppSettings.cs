@@ -90,8 +90,14 @@ namespace AzeuServices_V1
 
         public static void Save(AppSettings settings)
         {
+            // 1. Convert object to JSON string
             string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(FilePath, json);
+
+            // 2. ENCRYPT the JSON string
+            string encryptedData = AESCrypt.Encrypt(json);
+
+            // 3. Save the encrypted string to disk
+            File.WriteAllText(FilePath, encryptedData);
         }
 
         public static AppSettings Load()
@@ -101,11 +107,38 @@ namespace AzeuServices_V1
             {
                 try
                 {
-                    string localJson = File.ReadAllText(FilePath);
-                    settings = JsonSerializer.Deserialize<AppSettings>(localJson);
+                    string fileContent = File.ReadAllText(FilePath).Trim();
+
+                    string jsonToParse = null;
+
+                    // FAILSAFE: If it starts with '{', it is raw unencrypted JSON
+                    if (fileContent.StartsWith("{"))
+                    {
+                        jsonToParse = fileContent;
+                    }
+                    else
+                    {
+                        // Try to decrypt
+                        string decrypted = AESCrypt.Decrypt(fileContent);
+                        if (!string.IsNullOrEmpty(decrypted) && decrypted.Trim().StartsWith("{"))
+                        {
+                            jsonToParse = decrypted;
+                        }
+                        else
+                        {
+                            // Decryption failed or returned invalid data, fallback to raw
+                            jsonToParse = fileContent;
+                        }
+                    }
+
+                    settings = JsonSerializer.Deserialize<AppSettings>(jsonToParse);
                 }
-                catch { settings = new AppSettings(); }
+                catch
+                {
+                    settings = new AppSettings();
+                }
             }
+
             if (settings == null && !string.IsNullOrEmpty(RemoteUrl) && RemoteUrl.StartsWith("http"))
             {
                 try
@@ -122,9 +155,13 @@ namespace AzeuServices_V1
                 }
                 catch { settings = new AppSettings(); }
             }
+
             if (settings == null) settings = new AppSettings();
             if (settings.CountdownMinutes < 1) settings.CountdownMinutes = 1;
+
+            // Optional: Save it immediately so it becomes encrypted on the next app cycle
             Save(settings);
+
             return settings;
         }
     }
