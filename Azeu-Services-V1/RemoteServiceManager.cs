@@ -248,17 +248,58 @@ namespace AzeuServices_V1
 
         private void ShowRemoteMessage(string msg)
         {
-            // SAFETY: Instead of OpenForms[0], we use a more robust way to find a sync context
+            // We run this on a Task to avoid hanging the WebSocket connection
             Task.Run(() => {
-                Form syncForm = Application.OpenForms.Cast<Form>().FirstOrDefault(f => f.IsHandleCreated);
-                if (syncForm != null)
+                try
                 {
-                    syncForm.BeginInvoke(new Action(() => {
-                        RemoteMessageForm popup = new RemoteMessageForm(msg);
-                        popup.Show();
-                    }));
+                    // Find any form that belongs to the application to use its thread
+                    // Even if minimized to tray, Form1 still exists in this list.
+                    Form mainThreadForm = null;
+                    foreach (Form f in Application.OpenForms)
+                    {
+                        if (!f.IsDisposed && f.IsHandleCreated)
+                        {
+                            mainThreadForm = f;
+                            break;
+                        }
+                    }
+
+                    if (mainThreadForm != null)
+                    {
+                        // Use the main thread to spawn the popup
+                        mainThreadForm.BeginInvoke(new Action(() => {
+                            RemoteMessageForm popup = new RemoteMessageForm(msg);
+
+                            // CRITICAL: Ensure the form is TopMost and has no Owner
+                            // Setting Owner to null prevents it from being hidden with a minimized Form1
+                            popup.Owner = null;
+                            popup.TopMost = true;
+                            popup.Show();
+
+                            // Force focus so it appears even if the user is in another app
+                            popup.BringToFront();
+                            popup.Activate();
+                        }));
+                    }
+                    else
+                    {
+                        // FAILSAFE: If no forms are open at all (App is in extreme background)
+                        // We create a dedicated STA thread to force the window to appear.
+                        Thread thread = new Thread(() => {
+                            RemoteMessageForm popup = new RemoteMessageForm(msg);
+                            popup.TopMost = true;
+                            Application.Run(popup);
+                        });
+                        thread.SetApartmentState(ApartmentState.STA);
+                        thread.Start();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    WriteLog("Error displaying remote message: " + ex.Message);
                 }
             });
+            WriteLog("Remote Message received and processing: " + msg);
         }
 
         private async Task SendString(string data)
